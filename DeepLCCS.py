@@ -189,7 +189,7 @@ def get_features(ccs_df, args={}):
     global_feats_train = get_global_feats(X_train_global, train_df)
     global_feats_test = get_global_feats(X_test_global, test_df)
 
-    if config.DEBUG:
+    if args.DEBUG:
         ccs_df.to_csv("debug.csv")
         global_feats_train.tofile("global_feats_train.csv", sep=",")
         global_feats_train[:, 6].tofile("sum_radii_train.csv", sep=",")
@@ -401,167 +401,165 @@ def plot_restuls(ccs_df, ccs_df_test, ccs_df_train, args={}):
         ),
         dpi=300,
     )
-        FileNotFoundError(f"File {dataset} not found.")
 
-if args.DEBUG:
-    ccs_df = ccs_df.sample(1000, random_state=42)
+# X_matrix_count = pd.DataFrame(ccs_df["seq"].apply(Counter).to_dict()).fillna(0.0).T
+# # Get all the index identifiers
+# all_idx = list(X_matrix_count.index)
+# random.seed(42)
 
-X_matrix_count = pd.DataFrame(ccs_df["seq"].apply(Counter).to_dict()).fillna(0.0).T
-# Get all the index identifiers
-all_idx = list(X_matrix_count.index)
-random.seed(42)
+# # Shuffle the index identifiers so we can randomly split them in a testing and training set
+# random.shuffle(all_idx)
 
-# Shuffle the index identifiers so we can randomly split them in a testing and training set
-random.shuffle(all_idx)
+# # Select 90 % for training and the remaining 10 % for testing
+# train_idx = all_idx[0:int(len(all_idx)*0.9)]
+# test_idx = all_idx[int(len(all_idx)*0.9):]
 
-# Select 90 % for training and the remaining 10 % for testing
-train_idx = all_idx[0:int(len(all_idx)*0.9)]
-test_idx = all_idx[int(len(all_idx)*0.9):]
+# # Get the train and test indices and point to new variables
+# ccs_df_train = ccs_df.loc[train_idx,:]
+# ccs_df_test = ccs_df.loc[test_idx,:]
 
-# Get the train and test indices and point to new variables
-ccs_df_train = ccs_df.loc[train_idx,:]
-ccs_df_test = ccs_df.loc[test_idx,:]
+# train_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_train, predict_ccs=True)
+# test_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_test, predict_ccs=True)
+# train_df['charge'] = ccs_df_train['charge']
+# test_df['charge'] = ccs_df_test['charge']
+# train_df['seq'] = ccs_df_train['seq']
+# test_df['seq'] = ccs_df_test['seq']
 
-train_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_train, predict_ccs=True)
-test_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_test, predict_ccs=True)
-train_df['charge'] = ccs_df_train['charge']
-test_df['charge'] = ccs_df_test['charge']
-train_df['seq'] = ccs_df_train['seq']
-test_df['seq'] = ccs_df_test['seq']
+# train_df.to_csv("./data/train_{}_{}_{}_{}.csv".format(args.dataset, args.architecture, args.num_lstm, args.info))
 
-train_df.to_csv("./data/train_{}_{}_{}_{}.csv".format(args.dataset, args.architecture, args.num_lstm, args.info))
+# wandb.init(project="DeepLCCS", 
+#            name="{}_{}_{}_{}".format(args.dataset, args.architecture, args.num_lstm, args.info),
+#            save_code=True,
+#            config = {'architecture' : args.architecture,
+#                     'epochs' : args.epochs, 
+#                     'batch_size' : args.batch_size,
+#                     'num_lstm' : args.num_lstm,
+#                     'num_C_dense' : args.num_C_dense,
+#                     'num_concat_dense' : args.num_concat_dense,
+#                     'v_split' : args.v_split, 
+#                     'optimizer' : args.optimizer, 
+#                     'loss' : args.loss, 
+#                     'metrics' : args.metrics,
+#                     'activation' : args.activation,
+#                     'data_set' : args.dataset,
+#                     'dropout_lstm' : args.dropout_lstm,
+#                     'dropout_C_dense' : args.dropout_C_dense,
+#                     'dropout_concat_dense' : args.dropout_concat_dense,
+#                     'info' : args.info,
+#                     'DEBUG' : args.DEBUG})
 
-wandb.init(project="DeepLCCS", 
-           name="{}_{}_{}_{}".format(args.dataset, args.architecture, args.num_lstm, args.info),
-           save_code=True,
-           config = {'architecture' : args.architecture,
-                    'epochs' : args.epochs, 
-                    'batch_size' : args.batch_size,
-                    'num_lstm' : args.num_lstm,
-                    'num_C_dense' : args.num_C_dense,
-                    'num_concat_dense' : args.num_concat_dense,
-                    'v_split' : args.v_split, 
-                    'optimizer' : args.optimizer, 
-                    'loss' : args.loss, 
-                    'metrics' : args.metrics,
-                    'activation' : args.activation,
-                    'data_set' : args.dataset,
-                    'dropout_lstm' : args.dropout_lstm,
-                    'dropout_C_dense' : args.dropout_C_dense,
-                    'dropout_concat_dense' : args.dropout_concat_dense,
-                    'info' : args.info,
-                    'DEBUG' : args.DEBUG})
+# config = wandb.config
 
-config = wandb.config
+# X_train, X_train_sum, X_train_global, X_train_hc, y_train = deeplcretrainer.cnn_functions.get_feat_matrix(train_df)
+# X_test, X_test_sum, X_test_global, X_test_hc, y_test = deeplcretrainer.cnn_functions.get_feat_matrix(test_df)
 
-X_train, X_train_sum, X_train_global, X_train_hc, y_train = deeplcretrainer.cnn_functions.get_feat_matrix(train_df)
-X_test, X_test_sum, X_test_global, X_test_hc, y_test = deeplcretrainer.cnn_functions.get_feat_matrix(test_df)
+# global_feats_train = get_global_feats(X_train_global, train_df)
+# global_feats_test = get_global_feats(X_test_global, test_df)
 
-global_feats_train = get_global_feats(X_train_global, train_df)
-global_feats_test = get_global_feats(X_test_global, test_df)
+# if config.DEBUG:
+#     ccs_df.to_csv("debug.csv")
+#     global_feats_train.tofile("global_feats_train.csv", sep=",")
+#     global_feats_train[:,7].tofile("sum_radii_train.csv", sep=",")
 
-if config.DEBUG:
-    ccs_df.to_csv("debug.csv")
-    global_feats_train.tofile("global_feats_train.csv", sep=",")
-    global_feats_train[:,7].tofile("sum_radii_train.csv", sep=",")
+# X_train = np.transpose(X_train, (0, 2, 1))
+# X_test = np.transpose(X_test, (0, 2, 1))
 
-X_train = np.transpose(X_train, (0, 2, 1))
-X_test = np.transpose(X_test, (0, 2, 1))
+# if config.architecture == "LSTM":
+#     input_a = tf.keras.Input(shape=(None, X_train.shape[2]))
+#     # Bidirectional LSTM
+#     a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False, dropout=config.dropout_lstm))(input_a)
+#     # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False))(a)
+#     # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, dropout=config.dropout_lstm))(a)
+#     a = tf.keras.Model(inputs=input_a, outputs=a)
+#     # Input for global features
+#     input_b = tf.keras.Input(shape=(9,))
+#     # Dense layers for global features
+#     b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(input_b)
+#     b = tf.keras.Model(inputs=input_b, outputs=b)
+#     # Concatenate the two layers
+#     c = tf.keras.layers.concatenate([a.output, b.output], axis=-1)
+#     # Dense layers after concatenation
+#     c = tf.keras.layers.Dense(config.num_concat_dense[0], activation=config.activation)(c)
+#     c = tf.keras.layers.Dense(config.num_concat_dense[1], activation=config.activation)(c)
+#     c = tf.keras.layers.Dense(1, activation=config.activation)(c)
+#     # Create the final model
+#     model = tf.keras.Model(inputs=[a.input, b.input], outputs=c)
+#     model.compile(optimizer=config.optimizer, loss=config.loss, metrics=config.metrics)
 
-if config.architecture == "LSTM":
-    input_a = tf.keras.Input(shape=(None, X_train.shape[2]))
-    # Bidirectional LSTM
-    a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False, dropout=config.dropout_lstm))(input_a)
-    # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False))(a)
-    # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, dropout=config.dropout_lstm))(a)
-    a = tf.keras.Model(inputs=input_a, outputs=a)
-    # Input for global features
-    input_b = tf.keras.Input(shape=(9,))
-    # Dense layers for global features
-    b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(input_b)
-    b = tf.keras.Model(inputs=input_b, outputs=b)
-    # Concatenate the two layers
-    c = tf.keras.layers.concatenate([a.output, b.output], axis=-1)
-    # Dense layers after concatenation
-    c = tf.keras.layers.Dense(config.num_concat_dense[0], activation=config.activation)(c)
-    c = tf.keras.layers.Dense(config.num_concat_dense[1], activation=config.activation)(c)
-    c = tf.keras.layers.Dense(1, activation=config.activation)(c)
-    # Create the final model
-    model = tf.keras.Model(inputs=[a.input, b.input], outputs=c)
-    model.compile(optimizer=config.optimizer, loss=config.loss, metrics=config.metrics)
+# if config.architecture == "embedding":
+#     model = apd.embedding_model()
+#     model.compile(optimizer=config.optimizer, loss=config.loss, metrics=config.metrics)
 
-if config.architecture == "embedding":
-    model = apd.embedding_model()
-    model.compile(optimizer=config.optimizer, loss=config.loss, metrics=config.metrics)
+# # Fit the model on the training data
+# history = model.fit(
+#     (X_train, global_feats_train),
+#     ccs_df_train.loc[:, "tr"],
+#     epochs=config.epochs,
+#     batch_size=config.batch_size,
+#     validation_split=config.v_split,
+#     callbacks=[WandbMetricsLogger(log_freq=5), WandbModelCheckpoint("models")]
+# )
 
-# Fit the model on the training data
-history = model.fit(
-    (X_train, global_feats_train),
-    ccs_df_train.loc[:, "tr"],
-    epochs=config.epochs,
-    batch_size=config.batch_size,
-    validation_split=config.v_split,
-    callbacks=[WandbMetricsLogger(log_freq=5), WandbModelCheckpoint("models")]
-)
+# wandb.finish()
 
-wandb.finish()
+# # Predict CCS values test set
+# ccs_df_test["LSTM_predictions"] = model.predict((X_test,global_feats_test))
+# ccs_df_test.to_csv("./preds/{}_{}_{}_{}.csv".format(args.dataset, args.architecture, args.num_lstm, args.info))
 
-# Predict CCS values test set
-ccs_df_test["LSTM_predictions"] = model.predict((X_test,global_feats_test))
-ccs_df_test.to_csv("./preds/{}_{}_{}_{}.csv".format(args.dataset, args.architecture, args.num_lstm, args.info))
+# if len(ccs_df.index) < 1e4:
+#     set_alpha = 0.2
+#     set_size = 3
+# else:
+#     set_alpha = 0.05
+#     set_size = 1
 
-if len(ccs_df.index) < 1e4:
-    set_alpha = 0.2
-    set_size = 3
-else:
-    set_alpha = 0.05
-    set_size = 1
+# # Scatter plot the observations on the test set against the predictions on the same set
+# plt.scatter(
+#     ccs_df_test.loc[ccs_df_test["charge"]==2,"tr"],
+#     ccs_df_test.loc[ccs_df_test["charge"]==2,"LSTM_predictions"],
+#     alpha=set_alpha,
+#     s=set_size,
+#     label="Z=2"
+# )
 
-# Scatter plot the observations on the test set against the predictions on the same set
-plt.scatter(
-    ccs_df_test.loc[ccs_df_test["charge"]==2,"tr"],
-    ccs_df_test.loc[ccs_df_test["charge"]==2,"LSTM_predictions"],
-    alpha=set_alpha,
-    s=set_size,
-    label="Z=2"
-)
+# plt.scatter(
+#     ccs_df_test.loc[ccs_df_test["charge"]==3,"tr"],
+#     ccs_df_test.loc[ccs_df_test["charge"]==3,"LSTM_predictions"],
+#     alpha=set_alpha,
+#     s=set_size,
+#     label="Z=3"
+# )
 
-plt.scatter(
-    ccs_df_test.loc[ccs_df_test["charge"]==3,"tr"],
-    ccs_df_test.loc[ccs_df_test["charge"]==3,"LSTM_predictions"],
-    alpha=set_alpha,
-    s=set_size,
-    label="Z=3"
-)
+# plt.scatter(
+#     ccs_df_test.loc[ccs_df_test["charge"]==4,"tr"],
+#     ccs_df_test.loc[ccs_df_test["charge"]==4,"LSTM_predictions"],
+#     alpha=set_alpha,
+#     s=set_size,
+#     label="Z=4"
+# )
 
-plt.scatter(
-    ccs_df_test.loc[ccs_df_test["charge"]==4,"tr"],
-    ccs_df_test.loc[ccs_df_test["charge"]==4,"LSTM_predictions"],
-    alpha=set_alpha,
-    s=set_size,
-    label="Z=4"
-)
+# # Plot a diagonal the points should be one
+# plt.plot([300,1100],[300,1100],c="grey")
 
-# Plot a diagonal the points should be one
-plt.plot([300,1100],[300,1100],c="grey")
+# legend = plt.legend()
 
-legend = plt.legend()
+# for lh in legend.legendHandles:
+#     lh.set_sizes([25])
+#     lh.set_alpha(1)
 
-for lh in legend.legendHandles:
-    lh.set_sizes([25])
-    lh.set_alpha(1)
+# # Get the predictions and calculate performance metrics
+# predictions = ccs_df_test["LSTM_predictions"]
+# mare = round(sum((abs(predictions-ccs_df_test.loc[:,"tr"])/ccs_df_test.loc[:,"tr"])*100)/len(predictions),3)
+# pcc = round(pearsonr(predictions,ccs_df_test.loc[:,"tr"])[0],3)
+# perc_95 = round(np.percentile((abs(predictions-ccs_df_test.loc[:,"tr"])/ccs_df_test.loc[:,"tr"])*100,95)*2,2)
 
-# Get the predictions and calculate performance metrics
-predictions = ccs_df_test["LSTM_predictions"]
-mare = round(sum((abs(predictions-ccs_df_test.loc[:,"tr"])/ccs_df_test.loc[:,"tr"])*100)/len(predictions),3)
-pcc = round(pearsonr(predictions,ccs_df_test.loc[:,"tr"])[0],3)
-perc_95 = round(np.percentile((abs(predictions-ccs_df_test.loc[:,"tr"])/ccs_df_test.loc[:,"tr"])*100,95)*2,2)
+# plt.title(f"LSTM - PCC: {pcc} - MARE: {mare}% - 95th percentile: {perc_95}%")
 
-plt.title(f"LSTM - PCC: {pcc} - MARE: {mare}% - 95th percentile: {perc_95}%")
+# ax = plt.gca()
+# ax.set_aspect('equal')
 
-ax = plt.gca()
-ax.set_aspect('equal')
-
-plt.xlabel("Observed CCS (^2)")
-plt.ylabel("Predicted CCS (^2)")
-plt.savefig("./figs/{}_{}_{}_{}.png".format(args.dataset, args.architecture, args.num_lstm, args.info),dpi=300)
+# plt.xlabel("Observed CCS (^2)")
+# plt.ylabel("Predicted CCS (^2)")
+# plt.savefig("./figs/{}_{}_{}_{}.png".format(args.dataset, args.architecture, args.num_lstm, args.info),dpi=300)
+if __name__ == "__main__":
+    main()
