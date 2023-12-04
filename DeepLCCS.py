@@ -53,7 +53,7 @@ def get_AA_vols(seq):
     vol = 0
     for aa in seq:
         vol += vol_dict[aa]
-    vol_normalized = vol/vol_dict["G"]
+    vol_normalized = vol/(length*vol_dict["G"])
     return vol_normalized
 
 def get_global_feats(global_arr, df):
@@ -129,6 +129,8 @@ train_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_train, predict_ccs=T
 test_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_test, predict_ccs=True)
 train_df['charge'] = ccs_df_train['charge']
 test_df['charge'] = ccs_df_test['charge']
+train_df['seq'] = ccs_df_train['seq']
+test_df['seq'] = ccs_df_test['seq']
 
 train_df.to_csv("./data/train_{}_{}_{}_{}.csv".format(args.dataset, args.architecture, args.num_lstm, args.info))
 
