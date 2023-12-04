@@ -240,16 +240,12 @@ def main():
             ccs_df_test,
         ) = get_features(ccs_df, args=args)
 
-        X_train = pickle.dump(open(X_train, "X_train.pickle", "wb"))
-        global_feats_train = pickle.dump(
-            global_feats_train, open("global_feats_train.pickle", "wb")
-        )
-        X_test = pickle.dump(X_test, open("X_test.pickle", "wb"))
-        global_feats_test = pickle.dump(
-            global_feats_test, open("global_feats_test.pickle", "wb")
-        )
-        ccs_df_train = pickle.dump(ccs_df_train, open("ccs_df_train.pickle", "wb"))
-        ccs_df_test = pickle.dump(ccs_df_test, open("ccs_df_test.pickle", "wb"))
+        pickle.dump(X_train, open("X_train.pickle", "wb"))
+        pickle.dump(global_feats_train, open("global_feats_train.pickle", "wb"))
+        pickle.dump(X_test, open("X_test.pickle", "wb"))
+        pickle.dump(global_feats_test, open("global_feats_test.pickle", "wb"))
+        pickle.dump(ccs_df_train, open("ccs_df_train.pickle", "wb"))
+        pickle.dump(ccs_df_test, open("ccs_df_test.pickle", "wb"))
 
     wandb.init(
         project="DeepLCCS",
