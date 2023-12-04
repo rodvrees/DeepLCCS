@@ -11,32 +11,37 @@ import tensorflow.compat.v1 as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 import argparse
-import models_bb.APD_mimic as apd
 
-vol_dict = {"A" : 88.6,
-        "B" : 0.0,
-        "O" : 0.0,
-        "X" : 0.0,
-        "J" : 0.0,
-        "R" : 173.4,
-        "N" : 114.1,
-        "D" : 111.1,
-        "C" : 108.5,
-        "Q" : 143.8,
-        "E" : 138.4,
-        "G" : 60.1,
-        "H" : 153.2,
-        "I" : 166.7,
-        "L" : 166.7,
-        "K" : 168.6,
-        "M" : 162.9,
-        "F" : 189.9,
-        "P" : 112.7,
-        "S" : 89.0,
-        "T" : 116.1,
-        "W" : 227.8,
-        "Y" : 193.6,
-        "V" : 140}
+# import models_bb.APD_mimic as apd
+import pickle
+
+vol_dict = {
+    "A": 88.6,
+    "B": 0.0,
+    "O": 0.0,
+    "X": 0.0,
+    "J": 0.0,
+    "R": 173.4,
+    "N": 114.1,
+    "D": 111.1,
+    "C": 108.5,
+    "Q": 143.8,
+    "E": 138.4,
+    "G": 60.1,
+    "H": 153.2,
+    "I": 166.7,
+    "L": 166.7,
+    "K": 168.6,
+    "M": 162.9,
+    "F": 189.9,
+    "P": 112.7,
+    "S": 89.0,
+    "T": 116.1,
+    "W": 227.8,
+    "Y": 193.6,
+    "V": 140,
+}
+
 
 aa_comp = pd.read_csv("./aa_comp.csv")
 
@@ -252,18 +257,32 @@ def main():
             ccs_df = pd.read_csv(dataset)
         else:
             FileNotFoundError(f"File {dataset} not found.")
-
     if args.DEBUG:
         ccs_df = ccs_df.sample(100, random_state=42)
 
-    (
-        X_train,
-        global_feats_train,
-        X_test,
-        global_feats_test,
-        ccs_df_train,
-        ccs_df_test,
-    ) = get_features(ccs_df, args=args)
+    try:
+        X_train = pickle.load(open("X_train.pickle", "rb"))
+        global_feats_train = pickle.load(open("global_feats_train.pickle", "rb"))
+        X_test = pickle.load(open("X_test.pickle", "rb"))
+        global_feats_test = pickle.load(open("global_feats_test.pickle", "rb"))
+        ccs_df_train = pickle.load(open("ccs_df_train.pickle", "rb"))
+        ccs_df_test = pickle.load(open("ccs_df_test.pickle", "rb"))
+    except IOError:
+        (
+            X_train,
+            global_feats_train,
+            X_test,
+            global_feats_test,
+            ccs_df_train,
+            ccs_df_test,
+        ) = get_features(ccs_df, args=args)
+
+        pickle.dump(X_train, open("X_train.pickle", "wb"))
+        pickle.dump(global_feats_train, open("global_feats_train.pickle", "wb"))
+        pickle.dump(X_test, open("X_test.pickle", "wb"))
+        pickle.dump(global_feats_test, open("global_feats_test.pickle", "wb"))
+        pickle.dump(ccs_df_train, open("ccs_df_train.pickle", "wb"))
+        pickle.dump(ccs_df_test, open("ccs_df_test.pickle", "wb"))
 
     wandb.init(
         project="DeepLCCS",
@@ -433,6 +452,7 @@ def plot_results(ccs_df, ccs_df_test, ccs_df_train, args={}):
         ),
         dpi=300,
     )
+
 
 if __name__ == "__main__":
     main()
