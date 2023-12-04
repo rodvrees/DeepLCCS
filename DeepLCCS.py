@@ -194,6 +194,11 @@ def get_features(ccs_df, args={}):
     global_feats_train = get_global_feats(X_train_global, train_df)
     global_feats_test = get_global_feats(X_test_global, test_df)
 
+    if args.DEBUG:
+        ccs_df.to_csv("debug.csv")
+        global_feats_train.tofile("global_feats_train.csv", sep=",")
+        global_feats_train[:, 6].tofile("sum_radii_train.csv", sep=",")
+
     X_train = np.transpose(X_train, (0, 2, 1))
     X_test = np.transpose(X_test, (0, 2, 1))
 
