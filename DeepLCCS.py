@@ -15,6 +15,33 @@ import argparse
 # import models_bb.APD_mimic as apd
 import pickle
 
+vol_dict = {
+    "A": 88.6,
+    "B": 0.0,
+    "O": 0.0,
+    "X": 0.0,
+    "J": 0.0,
+    "R": 173.4,
+    "N": 114.1,
+    "D": 111.1,
+    "C": 108.5,
+    "Q": 143.8,
+    "E": 138.4,
+    "G": 60.1,
+    "H": 153.2,
+    "I": 166.7,
+    "L": 166.7,
+    "K": 168.6,
+    "M": 162.9,
+    "F": 189.9,
+    "P": 112.7,
+    "S": 89.0,
+    "T": 116.1,
+    "W": 227.8,
+    "Y": 193.6,
+    "V": 140,
+}
+
 
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
@@ -29,32 +56,6 @@ def get_atom_radii(atom_counts):
 
 
 def get_AA_vols(seq):
-    vol_dict = {
-        "A": 88.6,
-        "B": 0.0,
-        "O": 0.0,
-        "X": 0.0,
-        "J": 0.0,
-        "R": 173.4,
-        "N": 114.1,
-        "D": 111.1,
-        "C": 108.5,
-        "Q": 143.8,
-        "E": 138.4,
-        "G": 60.1,
-        "H": 153.2,
-        "I": 166.7,
-        "L": 166.7,
-        "K": 168.6,
-        "M": 162.9,
-        "F": 189.9,
-        "P": 112.7,
-        "S": 89.0,
-        "T": 116.1,
-        "W": 227.8,
-        "Y": 193.6,
-        "V": 140,
-    }
     length = len(seq)
     vol = 0
     for aa in seq:
