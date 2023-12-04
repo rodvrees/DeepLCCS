@@ -13,6 +13,31 @@ from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 import argparse
 import models_bb.APD_mimic as apd
 
+vol_dict = {"A" : 88.6,
+        "B" : 0.0,
+        "O" : 0.0,
+        "X" : 0.0,
+        "J" : 0.0,
+        "R" : 173.4,
+        "N" : 114.1,
+        "D" : 111.1,
+        "C" : 108.5,
+        "Q" : 143.8,
+        "E" : 138.4,
+        "G" : 60.1,
+        "H" : 153.2,
+        "I" : 166.7,
+        "L" : 166.7,
+        "K" : 168.6,
+        "M" : 162.9,
+        "F" : 189.9,
+        "P" : 112.7,
+        "S" : 89.0,
+        "T" : 116.1,
+        "W" : 227.8,
+        "Y" : 193.6,
+        "V" : 140}
+
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
     atom_radii[:,0] = atom_counts[:,0]*170
@@ -25,30 +50,6 @@ def get_atom_radii(atom_counts):
     return sum_radii
 
 def get_AA_vols(seq):
-    vol_dict = {"A" : 88.6,
-            "B" : 0.0,
-            "O" : 0.0,
-            "X" : 0.0,
-            "J" : 0.0,
-            "R" : 173.4,
-            "N" : 114.1,
-            "D" : 111.1,
-            "C" : 108.5,
-            "Q" : 143.8,
-            "E" : 138.4,
-            "G" : 60.1,
-            "H" : 153.2,
-            "I" : 166.7,
-            "L" : 166.7,
-            "K" : 168.6,
-            "M" : 162.9,
-            "F" : 189.9,
-            "P" : 112.7,
-            "S" : 89.0,
-            "T" : 116.1,
-            "W" : 227.8,
-            "Y" : 193.6,
-            "V" : 140}
     length = len(seq)
     vol = 0
     for aa in seq:
@@ -166,7 +167,7 @@ global_feats_test = get_global_feats(X_test_global, test_df)
 if config.DEBUG:
     ccs_df.to_csv("debug.csv")
     global_feats_train.tofile("global_feats_train.csv", sep=",")
-    global_feats_train[:,6].tofile("sum_radii_train.csv", sep=",")
+    global_feats_train[:,7].tofile("sum_radii_train.csv", sep=",")
 
 X_train = np.transpose(X_train, (0, 2, 1))
 X_test = np.transpose(X_test, (0, 2, 1))
@@ -178,9 +179,9 @@ if config.architecture == "LSTM":
     # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False))(a)
     # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, dropout=config.dropout_lstm))(a)
     a = tf.keras.Model(inputs=input_a, outputs=a)
-    # Input for charge
+    # Input for global features
     input_b = tf.keras.Input(shape=(9,))
-    # Dense layers for charge
+    # Dense layers for global features
     b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(input_b)
     b = tf.keras.Model(inputs=input_b, outputs=b)
     # Concatenate the two layers
