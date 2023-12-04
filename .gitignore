@@ -3,3 +3,8 @@ wandb/
 subsample.ipynb
 models/
 models_bb/
+preds/
+data/
+global_feats_train.csv
+sum_radii_train.csv
+
