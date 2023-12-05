@@ -11,6 +11,7 @@ import tensorflow.compat.v1 as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 import argparse
+from models_bb.attention import EnhancedAttentionLayer 
 
 # import models_bb.APD_mimic as apd
 import pickle
@@ -129,7 +130,8 @@ def parse_args():
     parser.add_argument(
         "--batch_size", type=int, default=128, help="Batch size to train the model"
     )
-    parser.add_argument("--num_lstm", type=int, default=24, help="Number of LSTM units")
+    parser.add_argument(
+        "--num_lstm", type=int, default=24, help="Number of LSTM units")
     parser.add_argument(
         "--num_C_dense", type=int, default=5, help="Number of dense units for charge"
     )
@@ -261,12 +263,23 @@ def main():
         ccs_df = ccs_df.sample(100, random_state=42)
 
     try:
-        X_train = pickle.load(open("X_train.pickle", "rb"))
-        global_feats_train = pickle.load(open("global_feats_train.pickle", "rb"))
-        X_test = pickle.load(open("X_test.pickle", "rb"))
-        global_feats_test = pickle.load(open("global_feats_test.pickle", "rb"))
-        ccs_df_train = pickle.load(open("ccs_df_train.pickle", "rb"))
-        ccs_df_test = pickle.load(open("ccs_df_test.pickle", "rb"))
+        if args.dataset == "full":
+        
+            X_train = pickle.load(open("X_train_full.pickle", "rb"))
+            global_feats_train = pickle.load(open("global_feats_train_full.pickle", "rb"))
+            X_test = pickle.load(open("X_test.pickle_full", "rb"))
+            global_feats_test = pickle.load(open("global_feats_test_full.pickle", "rb"))
+            ccs_df_train = pickle.load(open("ccs_df_train_full.pickle", "rb"))
+            ccs_df_test = pickle.load(open("ccs_df_test_full.pickle", "rb"))
+        
+        elif args.dataset == "sample":
+            X_train = pickle.load(open("X_train_sample.pickle", "rb"))
+            global_feats_train = pickle.load(open("global_feats_train_sample.pickle", "rb"))
+            X_test = pickle.load(open("X_test.pickle_sample", "rb"))
+            global_feats_test = pickle.load(open("global_feats_test_sample.pickle", "rb"))
+            ccs_df_train = pickle.load(open("ccs_df_train_sample.pickle", "rb"))
+            ccs_df_test = pickle.load(open("ccs_df_test_sample.pickle", "rb"))
+
     except IOError:
         (
             X_train,
@@ -277,12 +290,21 @@ def main():
             ccs_df_test,
         ) = get_features(ccs_df, args=args)
 
-        pickle.dump(X_train, open("X_train.pickle", "wb"))
-        pickle.dump(global_feats_train, open("global_feats_train.pickle", "wb"))
-        pickle.dump(X_test, open("X_test.pickle", "wb"))
-        pickle.dump(global_feats_test, open("global_feats_test.pickle", "wb"))
-        pickle.dump(ccs_df_train, open("ccs_df_train.pickle", "wb"))
-        pickle.dump(ccs_df_test, open("ccs_df_test.pickle", "wb"))
+        if args.dataset == "full":
+            pickle.dump(X_train, open("X_train_full.pickle", "wb"))
+            pickle.dump(global_feats_train, open("global_feats_train_full.pickle", "wb"))
+            pickle.dump(X_test, open("X_test_full.pickle", "wb"))
+            pickle.dump(global_feats_test, open("global_feats_test_full.pickle", "wb"))
+            pickle.dump(ccs_df_train, open("ccs_df_train_full.pickle", "wb"))
+            pickle.dump(ccs_df_test, open("ccs_df_test_full.pickle", "wb"))
+        
+        elif args.dataset == "sample":
+            pickle.dump(X_train, open("X_train_sample.pickle", "wb"))
+            pickle.dump(global_feats_train, open("global_feats_train_sample.pickle", "wb"))
+            pickle.dump(X_test, open("X_test_sample.pickle", "wb"))
+            pickle.dump(global_feats_test, open("global_feats_test_sample.pickle", "wb"))
+            pickle.dump(ccs_df_train, open("ccs_df_train_sample.pickle", "wb"))
+            pickle.dump(ccs_df_test, open("ccs_df_test_sample.pickle", "wb"))
 
     wandb.init(
         project="DeepLCCS",
@@ -321,18 +343,20 @@ def main():
                 config.num_lstm, return_sequences=False, dropout=config.dropout_lstm
             )
         )(input_a)
-        # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False))(a)
-        # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, dropout=config.dropout_lstm))(a)
+
         a = tf.keras.Model(inputs=input_a, outputs=a)
-        # Input for charge
+
+        # Input for global features
         input_b = tf.keras.Input(shape=(19,))
-        # Dense layers for charge
+        # Dense layers for global features
         b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
             input_b
         )
         b = tf.keras.Model(inputs=input_b, outputs=b)
+
         # Concatenate the two layers
         c = tf.keras.layers.concatenate([a.output, b.output], axis=-1)
+
         # Dense layers after concatenation
         c = tf.keras.layers.Dense(
             config.num_concat_dense[0], activation=config.activation
