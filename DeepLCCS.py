@@ -11,6 +11,8 @@ import tensorflow.compat.v1 as tf
 import wandb
 from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 import argparse
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten
+
 
 # import models_bb.APD_mimic as apd
 import pickle
@@ -127,7 +129,7 @@ def parse_args():
         "--epochs", type=int, default=100, help="Number of epochs to train the model"
     )
     parser.add_argument(
-        "--batch_size", type=int, default=128, help="Batch size to train the model"
+        "--batch_size", type=int, default=1024, help="Batch size to train the model"
     )
     parser.add_argument("--num_lstm", type=int, default=24, help="Number of LSTM units")
     parser.add_argument(
@@ -313,6 +315,103 @@ def main():
 
     config = wandb.config
 
+    if config.architecture == "CNN":
+        input_a = tf.keras.Input(shape=(X_train.shape[1], X_train.shape[2]))
+        a = Conv1D(
+            filters=1,
+            kernel_size=10,
+            strides=1,
+            padding="same",
+        )(input_a)
+        # a = Conv1D(
+        #    filters=128,
+        #    kernel_size=5,
+        #    strides=1,
+        #    padding="same",
+        # )(a)
+
+        a = Flatten()(a)
+        a = tf.keras.Model(inputs=input_a, outputs=a)
+
+        input_b = tf.keras.Input(shape=(9,))
+        b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
+            input_b
+        )
+        b = tf.keras.Model(inputs=input_b, outputs=b)
+
+        c = tf.keras.layers.concatenate([a.output, b.output], axis=-1)
+        c = tf.keras.layers.Dense(64, activation=config.activation)(c)
+        c = tf.keras.layers.Dense(64, activation=config.activation)(c)
+        c = tf.keras.layers.Dense(64, activation=config.activation)(c)
+        c = tf.keras.layers.Dense(64, activation=config.activation)(c)
+        c = tf.keras.layers.Dense(64, activation=config.activation)(c)
+        c = tf.keras.layers.Dense(1, activation=config.activation)(c)
+        # Create the final model
+        model = tf.keras.Model(inputs=[a.input, b.input], outputs=c)
+        model.compile(
+            optimizer=config.optimizer, loss=config.loss, metrics=config.metrics
+        )
+
+    if config.architecture == "CNN+LSTM":
+        input_a = tf.keras.Input(shape=(X_train.shape[1], X_train.shape[2]))
+        # Bidirectional LSTM
+        a = Conv1D(
+            filters=128,
+            kernel_size=4,
+            strides=4,
+            padding="same",
+        )(input_a)
+        a = Conv1D(
+            filters=128,
+            kernel_size=4,
+            strides=1,
+            padding="same",
+        )(a)
+        MaxPooling1D(pool_size=2)(a)
+        a = Conv1D(
+            filters=32,
+            kernel_size=5,
+            strides=1,
+            padding="same",
+        )(a)
+        a = Conv1D(
+            filters=32,
+            kernel_size=5,
+            strides=1,
+            padding="same",
+        )(a)
+        MaxPooling1D(pool_size=2)(a)
+
+        a = Flatten()(a)
+        a = tf.keras.Model(inputs=input_a, outputs=a)
+
+        input_b = tf.keras.Input(shape=(9,))
+        b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
+            input_b
+        )
+        b = tf.keras.Model(inputs=input_b, outputs=b)
+
+        input_c = tf.keras.Input(shape=(None, X_train.shape[2]))
+        # Bidirectional LSTM
+        c = tf.keras.layers.Bidirectional(
+            tf.keras.layers.LSTM(
+                config.num_lstm, return_sequences=False, dropout=config.dropout_lstm
+            )
+        )(input_c)
+        # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, return_sequences=False))(a)
+        # a = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(config.num_lstm, dropout=config.dropout_lstm))(a)
+        c = tf.keras.Model(inputs=input_c, outputs=c)
+
+        d = tf.keras.layers.concatenate([a.output, b.output, c.output], axis=-1)
+        d = tf.keras.layers.Dense(32, activation=config.activation)(d)
+        d = tf.keras.layers.Dense(32, activation=config.activation)(d)
+        d = tf.keras.layers.Dense(1, activation=config.activation)(d)
+        # Create the final model
+        model = tf.keras.Model(inputs=[a.input, b.input, c.input], outputs=d)
+        model.compile(
+            optimizer=config.optimizer, loss=config.loss, metrics=config.metrics
+        )
+
     if config.architecture == "LSTM":
         input_a = tf.keras.Input(shape=(None, X_train.shape[2]))
         # Bidirectional LSTM
@@ -353,15 +452,25 @@ def main():
             optimizer=config.optimizer, loss=config.loss, metrics=config.metrics
         )
 
-    # Fit the model on the training data
-    history = model.fit(
-        (X_train, global_feats_train),
-        ccs_df_train.loc[:, "tr"],
-        epochs=config.epochs,
-        batch_size=config.batch_size,
-        validation_split=config.v_split,
-        callbacks=[WandbMetricsLogger(log_freq=5), WandbModelCheckpoint("models")],
-    )
+    if config.architecture == "CNN+LSTM":
+        history = model.fit(
+            (X_train, global_feats_train, X_train),
+            ccs_df_train.loc[:, "tr"],
+            epochs=config.epochs,
+            batch_size=config.batch_size,
+            validation_split=config.v_split,
+            callbacks=[WandbMetricsLogger(log_freq=5), WandbModelCheckpoint("models")],
+        )
+    else:
+        # Fit the model on the training data
+        history = model.fit(
+            (X_train, global_feats_train),
+            ccs_df_train.loc[:, "tr"],
+            epochs=config.epochs,
+            batch_size=config.batch_size,
+            validation_split=config.v_split,
+            callbacks=[WandbMetricsLogger(log_freq=5), WandbModelCheckpoint("models")],
+        )
 
     wandb.finish()
 
