@@ -124,13 +124,13 @@ def get_global_feats(global_arr, df):
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a DeepLCCS model.")
     parser.add_argument(
-        "--dataset", type=str, default="full", help="full, sample or path to csv file"
+        "--dataset", type=str, default="sample", help="full, sample or path to csv file"
     )
     parser.add_argument(
         "--epochs", type=int, default=100, help="Number of epochs to train the model"
     )
     parser.add_argument(
-        "--batch_size", type=int, default=1024, help="Batch size to train the model"
+        "--batch_size", type=int, default=128, help="Batch size to train the model"
     )
     parser.add_argument(
         "--num_lstm", type=int, default=24, help="Number of LSTM units")
@@ -174,7 +174,18 @@ def parse_args():
     parser.add_argument(
         "--info", type=str, default="", help="Extra info to add to the run name"
     )
-    parser.add_argument("--DEBUG", type=bool, default=False, help="Debug mode")
+    parser.add_argument(
+        "--DEBUG", type=bool, default=False, help="Debug mode"
+    )
+    parser.add_argument(
+        "--kernel_size", type=int, default=10, help="Kernel size for CNN"
+    )
+    parser.add_argument(
+        "--strides", type=int, default=1, help="Strides for CNN"
+    )
+    parser.add_argument(
+        "--learning_rate", type=float, default=0.001, help="Learning rate"
+    )
     args = parser.parse_args()
 
     dataset = args.dataset
@@ -265,19 +276,19 @@ def main():
         ccs_df = ccs_df.sample(100, random_state=42)
 
     try:
-        if args.dataset == "full":
+        if dataset == "full":
         
             X_train = pickle.load(open("X_train_full.pickle", "rb"))
             global_feats_train = pickle.load(open("global_feats_train_full.pickle", "rb"))
-            X_test = pickle.load(open("X_test.pickle_full", "rb"))
+            X_test = pickle.load(open("X_test_full.pickle", "rb"))
             global_feats_test = pickle.load(open("global_feats_test_full.pickle", "rb"))
             ccs_df_train = pickle.load(open("ccs_df_train_full.pickle", "rb"))
             ccs_df_test = pickle.load(open("ccs_df_test_full.pickle", "rb"))
         
-        elif args.dataset == "sample":
+        elif dataset == "sample":
             X_train = pickle.load(open("X_train_sample.pickle", "rb"))
             global_feats_train = pickle.load(open("global_feats_train_sample.pickle", "rb"))
-            X_test = pickle.load(open("X_test.pickle_sample", "rb"))
+            X_test = pickle.load(open("X_test_sample.pickle", "rb"))
             global_feats_test = pickle.load(open("global_feats_test_sample.pickle", "rb"))
             ccs_df_train = pickle.load(open("ccs_df_train_sample.pickle", "rb"))
             ccs_df_test = pickle.load(open("ccs_df_test_sample.pickle", "rb"))
@@ -326,23 +337,27 @@ def main():
             "loss": args.loss,
             "metrics": args.metrics,
             "activation": args.activation,
-            "data_set": args.dataset,
+            "dataset": args.dataset,
             "dropout_lstm": args.dropout_lstm,
             "dropout_C_dense": args.dropout_C_dense,
             "dropout_concat_dense": args.dropout_concat_dense,
             "info": args.info,
             "DEBUG": args.DEBUG,
+            "kernel_size": args.kernel_size,
+            "strides": args.strides,
+            "learning_rate": args.learning_rate,
         },
     )
 
     config = wandb.config
 
     if config.architecture == "CNN":
+        adam = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
         input_a = tf.keras.Input(shape=(X_train.shape[1], X_train.shape[2]))
         a = Conv1D(
             filters=1,
-            kernel_size=10,
-            strides=1,
+            kernel_size=config.kernel_size,
+            strides=config.strides,
             padding="same",
         )(input_a)
         # a = Conv1D(
@@ -355,7 +370,7 @@ def main():
         a = Flatten()(a)
         a = tf.keras.Model(inputs=input_a, outputs=a)
 
-        input_b = tf.keras.Input(shape=(9,))
+        input_b = tf.keras.Input(shape=(19,))
         b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
             input_b
         )
@@ -371,7 +386,7 @@ def main():
         # Create the final model
         model = tf.keras.Model(inputs=[a.input, b.input], outputs=c)
         model.compile(
-            optimizer=config.optimizer, loss=config.loss, metrics=config.metrics
+            optimizer=adam, loss=config.loss, metrics=config.metrics
         )
 
     if config.architecture == "CNN+LSTM":
@@ -407,7 +422,7 @@ def main():
         a = Flatten()(a)
         a = tf.keras.Model(inputs=input_a, outputs=a)
 
-        input_b = tf.keras.Input(shape=(9,))
+        input_b = tf.keras.Input(shape=(19,))
         b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
             input_b
         )
@@ -435,6 +450,7 @@ def main():
         )
 
     if config.architecture == "LSTM":
+        adam = tf.keras.optimizers.Adam(learning_rate=config.learning_rate)
         input_a = tf.keras.Input(shape=(None, X_train.shape[2]))
         # Bidirectional LSTM
         a = tf.keras.layers.Bidirectional(
@@ -467,7 +483,7 @@ def main():
         # Create the final model
         model = tf.keras.Model(inputs=[a.input, b.input], outputs=c)
         model.compile(
-            optimizer=config.optimizer, loss=config.loss, metrics=config.metrics
+            optimizer=adam, loss=config.loss, metrics=config.metrics
         )
 
     if config.architecture == "embedding":

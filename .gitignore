@@ -8,3 +8,4 @@ data/
 global_feats_train.csv
 sum_radii_train.csv
 *.pickle
+figs/
