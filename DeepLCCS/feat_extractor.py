@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 from collections import Counter
@@ -33,18 +34,17 @@ vol_dict = {
     "V": 140,
 }
 
-
 aa_comp = pd.read_csv("./aa_comp.csv")
-
+aa_vol = pd.read_csv("./aa_vol.csv")
 
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
-    atom_radii[:, 0] = atom_counts[:, 0] * 170
-    atom_radii[:, 1] = atom_counts[:, 1] * 120
-    atom_radii[:, 2] = atom_counts[:, 2] * 155
-    atom_radii[:, 3] = atom_counts[:, 3] * 152
-    atom_radii[:, 4] = atom_counts[:, 4] * 180
-    atom_radii[:, 5] = atom_counts[:, 5] * 180
+    atom_radii[:, 0] = atom_counts[:, 0] * 170 #C
+    atom_radii[:, 1] = atom_counts[:, 1] * 120 #H
+    atom_radii[:, 2] = atom_counts[:, 2] * 155 #N
+    atom_radii[:, 3] = atom_counts[:, 3] * 152 #O
+    atom_radii[:, 4] = atom_counts[:, 4] * 180 #S
+    atom_radii[:, 5] = atom_counts[:, 5] * 180 #P
     sum_radii = np.sum(atom_radii, axis=1)
     return sum_radii
 
@@ -53,8 +53,8 @@ def get_AA_vols(seq):
     length = len(seq)
     vol = 0
     for aa in seq:
-        vol += vol_dict[aa]
-    vol_normalized = vol / (length * vol_dict["G"])
+        vol += aa_vol.loc[aa_vol["aa"] == aa, "vol"].values[0]
+    vol_normalized = vol / (length * aa_vol.loc[aa_vol["aa"] == "G", "vol"].values[0])
     return vol_normalized
 
 
@@ -115,7 +115,8 @@ def get_global_feats(global_arr, df):
     )
     return global_feats
 
-def get_features(ccs_df, args={}):
+#TODO make test_split a parameter
+def train_test_split(ccs_df):
     X_matrix_count = pd.DataFrame(ccs_df["seq"].apply(Counter).to_dict()).fillna(0.0).T
     # Get all the index identifiers
     all_idx = list(X_matrix_count.index)
@@ -131,7 +132,10 @@ def get_features(ccs_df, args={}):
     # Get the train and test indices and point to new variables
     ccs_df_train = ccs_df.loc[train_idx, :]
     ccs_df_test = ccs_df.loc[test_idx, :]
+    return ccs_df_train, ccs_df_test
 
+def get_features(ccs_df, dataset, architecture, num_lstm, info, log_level="info"):
+    ccs_df_train, ccs_df_test = train_test_split(ccs_df)
     train_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_train, predict_ccs=True)
     test_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_test, predict_ccs=True)
     train_df["charge"] = ccs_df_train["charge"]
@@ -141,7 +145,7 @@ def get_features(ccs_df, args={}):
 
     train_df.to_csv(
         "./data/train_{}_{}_{}_{}.csv".format(
-            args.dataset, args.architecture, args.num_lstm, args.info
+            dataset, architecture, num_lstm, info
         )
     )
 
@@ -163,7 +167,7 @@ def get_features(ccs_df, args={}):
     global_feats_train = get_global_feats(X_train_global, train_df)
     global_feats_test = get_global_feats(X_test_global, test_df)
 
-    if args.DEBUG:
+    if log_level == "debug":
         ccs_df.to_csv("debug.csv")
         global_feats_train.tofile("global_feats_train.csv", sep=",")
 

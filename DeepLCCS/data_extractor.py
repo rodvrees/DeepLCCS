@@ -4,7 +4,7 @@ import pickle
 from DeepLCCS.feat_extractor import get_features
 
 
-def get_data(dataset, args={}):
+def get_data(dataset, architecture, num_lstm, info, log_level="info"):
     if dataset == "full":
         ccs_df = pd.read_csv("./data/peprec_CCS.csv")
     elif dataset == "sample":
@@ -14,7 +14,7 @@ def get_data(dataset, args={}):
             ccs_df = pd.read_csv(dataset)
         else:
             FileNotFoundError(f"File {dataset} not found.")
-    if args.DEBUG:
+    if log_level == "debug":
         ccs_df = ccs_df.sample(100, random_state=42)
 
     try:
@@ -48,9 +48,9 @@ def get_data(dataset, args={}):
             global_feats_test,
             ccs_df_train,
             ccs_df_test,
-        ) = get_features(ccs_df, args=args)
+        ) = get_features(ccs_df, dataset, architecture, num_lstm, info)
 
-        if args.dataset == "full":
+        if dataset == "full":
             pickle.dump(X_train, open("X_train_full.pickle", "wb"))
             pickle.dump(
                 global_feats_train, open("global_feats_train_full.pickle", "wb")
@@ -60,7 +60,7 @@ def get_data(dataset, args={}):
             pickle.dump(ccs_df_train, open("ccs_df_train_full.pickle", "wb"))
             pickle.dump(ccs_df_test, open("ccs_df_test_full.pickle", "wb"))
 
-        elif args.dataset == "sample":
+        elif dataset == "sample":
             pickle.dump(X_train, open("X_train_sample.pickle", "wb"))
             pickle.dump(
                 global_feats_train, open("global_feats_train_sample.pickle", "wb")
@@ -73,6 +73,7 @@ def get_data(dataset, args={}):
             pickle.dump(ccs_df_test, open("ccs_df_test_sample.pickle", "wb"))
 
     return (
+        ccs_df,
         X_train,
         global_feats_train,
         X_test,
