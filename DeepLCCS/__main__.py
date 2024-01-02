@@ -14,6 +14,7 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import wandb
 
 # Import local modules
 from DeepLCCS.feat_extractor import get_features
@@ -100,4 +101,9 @@ def run(
         ccs_df_test,
     ) = get_data(dataset, log_level, architecture, num_lstm, info)
 
-#TODO: continue here, with wandb setup. Dont go conflating the wandb config, keep using the args
+def wandb_setup():
+    """Setup wandb"""
+    args = parse_args()
+    config = start_wandb(args)
+    return config
+
