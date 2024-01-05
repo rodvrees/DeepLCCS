@@ -186,12 +186,35 @@ def parse_args():
     parser.add_argument(
         "--learning_rate", type=float, default=0.001, help="Learning rate"
     )
+    parser.add_argument(
+        "--regularizer_type", type=str, default="kernel", help="Where to apply regularization (kernel, bias, activity)"
+    )
+    parser.add_argument(
+        "--regularizer", type=str, default="l1", help="Regularizer to use"
+    )
+    parser.add_argument(
+        "--regularizer_strength_l1", type=float, default=0.01, help="Strength of l1 regularizer"
+    )
+    parser.add_argument(
+        "--regularizer_strength_l2", type=float, default=0.01, help="Strength of l2 regularizer"
+    )
     args = parser.parse_args()
 
     dataset = args.dataset
 
     return dataset, args
 
+def regularizer_setup(regularizer, regularizer_strength_l1, regularizer_strength_l2):
+    if regularizer == "l1":
+        regularizer = tf.keras.regularizers.l1(regularizer_strength_l1)
+    elif regularizer == "l2":
+        regularizer = tf.keras.regularizers.l2(regularizer_strength_l2)
+    elif regularizer == "l1_l2":
+        regularizer = tf.keras.regularizers.l1_l2(regularizer_strength_l1, regularizer_strength_l2)
+    else:
+        regularizer = None
+
+    return regularizer
 
 def get_features(ccs_df, args={}):
     X_matrix_count = pd.DataFrame(ccs_df["seq"].apply(Counter).to_dict()).fillna(0.0).T
@@ -346,6 +369,9 @@ def main():
             "kernel_size": args.kernel_size,
             "strides": args.strides,
             "learning_rate": args.learning_rate,
+            "regularizer": args.regularizer,
+            "regularizer_strength_l1": args.regularizer_strength_l1,
+            "regularizer_strength_l2": args.regularizer_strength_l2,
         },
     )
 
@@ -455,7 +481,7 @@ def main():
         # Bidirectional LSTM
         a = tf.keras.layers.Bidirectional(
             tf.keras.layers.LSTM(
-                config.num_lstm, return_sequences=False, dropout=config.dropout_lstm
+                config.num_lstm, return_sequences=False, dropout=config.dropout_lstm, kernel_regularizer=regularizer_setup(args.regularizer, args.regularizer_strength_l1, args.regularizer_strength_l2)
             )
         )(input_a)
 
@@ -464,7 +490,7 @@ def main():
         # Input for global features
         input_b = tf.keras.Input(shape=(19,))
         # Dense layers for global features
-        b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation)(
+        b = tf.keras.layers.Dense(config.num_C_dense, activation=config.activation, kernel_regularizer=regularizer_setup(args.regularizer, args.regularizer_strength_l1, args.regularizer_strength_l2))(
             input_b
         )
         b = tf.keras.Model(inputs=input_b, outputs=b)
