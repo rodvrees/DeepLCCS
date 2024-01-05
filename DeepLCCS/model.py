@@ -50,15 +50,16 @@ def compile_model(config, X_train):
         )
     
     if config.architecture == "LSTM":
-        a = LSTM_first_input(
-            X_train, config.num_LSTM_layers, config.num_lstm, config.dropout_lstm
+        first_input = LSTM_first_input(
+            X_train, config.num_lstm_layers, config.num_lstm, config.dropout_lstm
         )
-        b = LSTM_second_input(config.num_C_dense, config.num_C_dense, config.activation)
+        a = first_input(X_train)
+        b = LSTM_second_input(config.num_C_dense, config.num_dense_layers, config.activation)
         model = LSTM_concatenate(
-            a.input,
-            b.input,
-            a.output,
-            b.output,
+            first_input.inputlayer,
+            b.inputlayer,
+            a,
+            b(a),
             config.num_dense_layers,
             config.activation,
             config.num_concat_dense,

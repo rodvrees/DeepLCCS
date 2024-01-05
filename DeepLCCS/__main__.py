@@ -6,24 +6,29 @@ __email__ = ["robbe.devreese@ugent.be", "robbin.bouwmeester@ugent.be"]
 
 # Import standard modules
 import os
-import argparse
 import logging
 import sys
-
-# Import third party modules
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import wandb
+import warnings
+import datetime
 
 # Import local modules
-from DeepLCCS.feat_extractor import get_features
-from DeepLCCS.data_extractor import get_data
-from DeepLCCS.model import compile_model, fit_model
-from DeepLCCS.plot_results import plot_pred_results
-from DeepLCCS.wandb_setup import start_wandb, stop_wandb
-from DeepLCCS._argument_parser import parse_args
-from DeepLCCS._exceptions import DeepLCCSError
+try:
+    from DeepLCCS.data_extractor import get_data
+    from DeepLCCS.model import compile_model, fit_model
+    from DeepLCCS.wandb_setup import start_wandb, stop_wandb
+    from DeepLCCS._argument_parser import parse_args
+    from DeepLCCS._exceptions import DeepLCCSException
+    from DeepLCCS.wandb_setup import start_wandb, stop_wandb
+    from DeepLCCS.predict import predict_and_plot
+    from DeepLCCS import __version__
+except ImportError:
+    from .data_extractor import get_data
+    from .model import compile_model, fit_model
+    from ._argument_parser import parse_args
+    from ._exceptions import DeepLCCSException
+    from .wandb_setup import start_wandb, stop_wandb
+    from .predict import predict_and_plot
+    from . import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +48,7 @@ def setup_logging(passed_level):
             ", ".join(log_mapping.keys()),
         )
 
-    logging.basisConfig(
+    logging.basicConfig(
         stream=sys.stdout,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -54,42 +59,33 @@ def setup_logging(passed_level):
 def main():
     "Main function for DeepLCCS"
     args = parse_args()
+    now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
     setup_logging(args.log_level)
+    if args.log_level == "debug":
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
+        logging.getLogger("tensorflow").setLevel(logging.DEBUG)
+        warnings.filterwarnings("default", category=DeprecationWarning)
+        warnings.filterwarnings("default", category=FutureWarning)
+        warnings.filterwarnings("default", category=UserWarning)
+    else:
+        os.environ['KMP_WARNINGS'] = '0'
 
+    if args.wandb:
+        config = start_wandb(args, now)
+    
     try:
-        run(**vars(args))
-    except DeepLCCSError as e:
+        
+        run(args, now)
+    except DeepLCCSException as e:
         logger.exception(e)
         sys.exit(1)
 
 
-def run(
-    dataset,
-    epochs,
-    batch_size,
-    num_lstm,
-    num_C_dense,
-    num_concat_dense,
-    v_split,
-    optimizer,
-    loss,
-    metrics,
-    activation,
-    dropout_lstm,
-    dropout_C_dense,
-    dropout_concat_dense,
-    architecture,
-    kernel_size,
-    strides,
-    learning_rate,
-    num_dense_layers,
-    num_lstm_layers,
-    info,
-    log_level,
+def run(args, time
 ):
-    """Run DeepLCCS training and valiation"""
-    logger.info("Starting DeepLCCS")
+    """Run DeepLCCS training and validation"""
+    logger.info("Starting DeepLCCS-trainer version {}".format(__version__))
 
     (
         ccs_df,
@@ -99,11 +95,21 @@ def run(
         global_feats_test,
         ccs_df_train,
         ccs_df_test,
-    ) = get_data(dataset, log_level, architecture, num_lstm, info)
+    ) = get_data(args.dataset, args.log_level, args.architecture, args.num_lstm, args.info)
 
-def wandb_setup():
-    """Setup wandb"""
-    args = parse_args()
-    config = start_wandb(args)
-    return config
+    model = compile_model(args, X_train)
+    history = fit_model(
+        model, X_train, global_feats_train, ccs_df_train, args
+    )
+
+    stop_wandb()
+
+    # Predict CCS values test set
+    predict_and_plot(ccs_df, X_test, global_feats_test, ccs_df_test, model, args, time)
+
+if __name__ == "__main__":
+    main()
+
+    
+
 

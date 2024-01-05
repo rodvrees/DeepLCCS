@@ -6,7 +6,13 @@ def parse_args():
         prog="DeepLCCS",
         description="Collisional cross section prediction using deep learning",
     )
-    io_args = parser.add_argument_group("Input and output files")
+    io_args = parser.add_argument_group("Input and output files and dirs")
+    io_args.add_argument(
+        "--prediction_dir", type=str, default="./preds", help="Directory for predictions"
+    )
+    io_args.add_argument(
+        "--figure_dir", type=str, default="./figures", help="Directory for figures"
+    )
     io_args.add_argument(
         "--dataset", type=str, default="sample", help="full, sample or path to csv file"
     )
@@ -73,12 +79,30 @@ def parse_args():
     model_args.add_argument(
         "--num_lstm_layers", type=int, default=1, help="Number of LSTM layers"
     )
+    model_args.add_argument(
+        "--regularizer", type=str, default="l1", help="Regularizer to use"
+    )
+    model_args.add_argument(
+        "--regularizer_strength_l1",
+        type=float,
+        default=0.0,
+        help="Regularizer strength for l1",
+    )
+    model_args.add_argument(
+        "--regularizer_strength_l2",
+        type=float,
+        default=0.0,
+        help="Regularizer strength for l2",
+    )
     other_args = parser.add_argument_group("Other parameters")
     other_args.add_argument(
         "--info", type=str, default="", help="Extra info to add to the run name"
     )
     other_args.add_argument(
         "--log_level", type=str, default="info", help="Logging level to use"
+    )
+    other_args.add_argument(
+        "--wandb", type=bool, default=True, help="Use wandb for logging"
     )
     args = parser.parse_args()
 

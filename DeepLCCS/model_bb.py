@@ -178,7 +178,7 @@ class LSTM_first_input(models.Model):
         self.num_LSTM = num_LSTM
         self.dropout = dropout
 
-        self.input = layers.Input(shape=(None, X_train.shape[2]))
+        self.inputlayer = layers.Input(shape=(None, X_train.shape[2]))
         self.final_lstm = layers.Bidirectional(
             layers.LSTM(num_LSTM, return_sequences=False, dropout=dropout)
         )
@@ -196,18 +196,17 @@ class LSTM_first_input(models.Model):
                 ),
             )
 
-    def call(self):
-        a = self.input()
+    def call(self, inputs):
+        a = inputs
         input_a = copy.deepcopy(a)
         for i in range(self.num_LSTM_layers - 1):
             a = getattr(self, "LSTM_{}".format(i))(a)
-        return tf.keras.Model(inputs=input_a, outputs=a)
-
+        return a
 
 class LSTM_second_input(models.Model):
     def __init__(self, num_C_dense, num_dense_layers, activation):
         super().__init__()
-        self.input = layers.Input(shape=(19,))
+        self.inputlayer = layers.Input(shape=(19,))
         self.dense = layers.Dense(num_C_dense, activation=activation)
         self.num_dense_layers = num_dense_layers
 
@@ -223,8 +222,8 @@ class LSTM_second_input(models.Model):
                 ),
             )
 
-    def call(self):
-        input_b = self.input()
+    def call(self, inputs):
+        input_b = inputs
         b = copy.deepcopy(input_b)
         for i in range(self.num_dense_layers - 1):
             b = getattr(self, "dense_{}".format(i))(b)

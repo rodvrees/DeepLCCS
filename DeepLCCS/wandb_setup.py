@@ -1,9 +1,11 @@
 import wandb
-def start_wandb(args):
+import datetime
+
+def start_wandb(args, time):
     wandb.init(
             project="DeepLCCS",
-            name="{}_{}_{}_{}".format(
-                args.dataset, args.architecture, args.num_lstm, args.info
+            name="{}_{}_{}_{}_{}".format(
+                args.dataset, args.architecture, args.num_lstm, args.info, time
             ),
             save_code=True,
             config={
@@ -23,12 +25,14 @@ def start_wandb(args):
                 "dropout_C_dense": args.dropout_C_dense,
                 "dropout_concat_dense": args.dropout_concat_dense,
                 "info": args.info,
-                "DEBUG": args.DEBUG,
                 "kernel_size": args.kernel_size,
                 "strides": args.strides,
                 "learning_rate": args.learning_rate,
                 "num_dense_layers": args.num_dense_layers,
                 "num_lstm_layers": args.num_lstm_layers,
+                "regularizer": args.regularizer,
+                "regularizer_strength_l1": args.regularizer_strength_l1,
+                "regularizer_strength_l2": args.regularizer_strength_l2,
             },
         )
 

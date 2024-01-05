@@ -1,11 +1,10 @@
-import logging
+import os
 import numpy as np
 import pandas as pd
 from collections import Counter
 import random
 import deeplcretrainer.cnn_functions
-import os
-import pickle
+import sys
 
 vol_dict = {
     "A": 88.6,
@@ -34,8 +33,9 @@ vol_dict = {
     "V": 140,
 }
 
-aa_comp = pd.read_csv("./aa_comp.csv")
-aa_vol = pd.read_csv("./aa_vol.csv")
+filepath = os.path.dirname(os.path.realpath(__file__))
+aa_comp = pd.read_csv(filepath + "/aa_comp.csv")
+aa_vol = pd.read_csv(filepath + "/aa_vol.csv")
 
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
