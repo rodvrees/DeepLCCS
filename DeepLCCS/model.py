@@ -1,4 +1,5 @@
-import tensorflow as tf
+# import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 from DeepLCCS.model_bb import (
     CNN_model_first_input,

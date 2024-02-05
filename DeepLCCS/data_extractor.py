@@ -2,10 +2,14 @@ import pandas as pd
 import os
 import pickle
 from DeepLCCS.feat_extractor import get_features
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_data(dataset, architecture, num_lstm, info, log_level="info"):
     if dataset == "full":
+        logger.info("Loading full dataset")
         ccs_df = pd.read_csv("./data/peprec_CCS.csv")
     elif dataset == "sample":
         ccs_df = pd.read_csv("./data/ccs_sample.csv")
@@ -39,8 +43,9 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
             )
             ccs_df_train = pickle.load(open("ccs_df_train_sample.pickle", "rb"))
             ccs_df_test = pickle.load(open("ccs_df_test_sample.pickle", "rb"))
-
+        logger.info("Training and test split already exist, loading them...")
     except IOError:
+        logger.info("Training and test split do not exist, creating them...")
         (
             X_train,
             global_feats_train,
@@ -71,7 +76,8 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
             )
             pickle.dump(ccs_df_train, open("ccs_df_train_sample.pickle", "wb"))
             pickle.dump(ccs_df_test, open("ccs_df_test_sample.pickle", "wb"))
-
+        logger.info("Training and test split created and saved.")
+        
     return (
         ccs_df,
         X_train,

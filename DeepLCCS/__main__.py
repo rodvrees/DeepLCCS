@@ -8,27 +8,21 @@ __email__ = ["robbe.devreese@ugent.be", "robbin.bouwmeester@ugent.be"]
 import os
 import logging
 import sys
+sys.path.append("/home/robbe/DeepLCCS")
 import warnings
 import datetime
 
 # Import local modules
-try:
-    from DeepLCCS.data_extractor import get_data
-    from DeepLCCS.model import compile_model, fit_model
-    from DeepLCCS.wandb_setup import start_wandb, stop_wandb
-    from DeepLCCS._argument_parser import parse_args
-    from DeepLCCS._exceptions import DeepLCCSException
-    from DeepLCCS.wandb_setup import start_wandb, stop_wandb
-    from DeepLCCS.predict import predict_and_plot
-    from DeepLCCS import __version__
-except ImportError:
-    from .data_extractor import get_data
-    from .model import compile_model, fit_model
-    from ._argument_parser import parse_args
-    from ._exceptions import DeepLCCSException
-    from .wandb_setup import start_wandb, stop_wandb
-    from .predict import predict_and_plot
-    from . import __version__
+# try:
+from DeepLCCS.data_extractor import get_data
+# from DeepLCCS.model import compile_model, fit_model
+from DeepLCCS.LSTMtest import compile_model, fit_model
+from DeepLCCS.wandb_setup import start_wandb, stop_wandb
+from DeepLCCS._argument_parser import parse_args
+from DeepLCCS._exceptions import DeepLCCSException
+from DeepLCCS.wandb_setup import start_wandb, stop_wandb
+from DeepLCCS.predict import predict_and_plot
+from DeepLCCS import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +67,9 @@ def main():
 
     if args.wandb:
         config = start_wandb(args, now)
-    
+
     try:
-        
+
         run(args, now)
     except DeepLCCSException as e:
         logger.exception(e)
@@ -97,6 +91,7 @@ def run(args, time
         ccs_df_test,
     ) = get_data(args.dataset, args.log_level, args.architecture, args.num_lstm, args.info)
 
+    logger.info('Training model...')
     model = compile_model(args, X_train)
     history = fit_model(
         model, X_train, global_feats_train, ccs_df_train, args
@@ -105,11 +100,12 @@ def run(args, time
     stop_wandb()
 
     # Predict CCS values test set
+    logger.info('Predicting and plotting CCS values for test set...')
     predict_and_plot(ccs_df, X_test, global_feats_test, ccs_df_test, model, args, time)
 
 if __name__ == "__main__":
     main()
 
-    
+
 
 

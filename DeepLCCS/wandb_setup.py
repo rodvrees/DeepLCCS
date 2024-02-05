@@ -3,11 +3,11 @@ import datetime
 
 def start_wandb(args, time):
     wandb.init(
-            project="DeepLCCS",
+            project="DeepLCCS-new-architectures",
             name="{}_{}_{}_{}_{}".format(
                 args.dataset, args.architecture, args.num_lstm, args.info, time
             ),
-            save_code=True,
+            save_code=False,
             config={
                 "architecture": args.architecture,
                 "epochs": args.epochs,

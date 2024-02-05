@@ -11,10 +11,10 @@ def parse_args():
         "--prediction_dir", type=str, default="./preds", help="Directory for predictions"
     )
     io_args.add_argument(
-        "--figure_dir", type=str, default="./figures", help="Directory for figures"
+        "--figure_dir", type=str, default="./figs", help="Directory for figures"
     )
     io_args.add_argument(
-        "--dataset", type=str, default="sample", help="full, sample or path to csv file"
+        "--dataset", type=str, default="full", help="full, sample or path to csv file"
     )
 
     model_args = parser.add_argument_group("Model parameters")
@@ -28,7 +28,7 @@ def parse_args():
         "--num_lstm", type=int, default=24, help="Number of LSTM units"
     )
     model_args.add_argument(
-        "--num_C_dense", type=int, default=5, help="Number of dense units for charge"
+        "--num_C_dense", type=int, default=16, help="Number of dense units for charge"
     )
     model_args.add_argument(
         "--num_concat_dense",
@@ -37,7 +37,7 @@ def parse_args():
         help="Number of dense units after concatenation",
     )
     model_args.add_argument(
-        "--v_split", type=float, default=0.1, help="Validation split"
+        "--v_split", type=float, default=0.01, help="Validation split"
     )
     model_args.add_argument(
         "--optimizer", type=str, default="adam", help="Optimizer to use"
