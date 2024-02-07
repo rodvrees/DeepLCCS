@@ -39,12 +39,12 @@ aa_vol = pd.read_csv(filepath + "/aa_vol.csv")
 
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
-    atom_radii[:, 0] = atom_counts[:, 0] * 170 #C
-    atom_radii[:, 1] = atom_counts[:, 1] * 120 #H
-    atom_radii[:, 2] = atom_counts[:, 2] * 155 #N
-    atom_radii[:, 3] = atom_counts[:, 3] * 152 #O
-    atom_radii[:, 4] = atom_counts[:, 4] * 180 #S
-    atom_radii[:, 5] = atom_counts[:, 5] * 180 #P
+    atom_radii[:, 0] = atom_counts[:, 0] * 1.70 #C
+    atom_radii[:, 1] = atom_counts[:, 1] * 1.20 #H
+    atom_radii[:, 2] = atom_counts[:, 2] * 1.55 #N
+    atom_radii[:, 3] = atom_counts[:, 3] * 1.52 #O
+    atom_radii[:, 4] = atom_counts[:, 4] * 1.80 #S
+    atom_radii[:, 5] = atom_counts[:, 5] * 1.80 #P
     sum_radii = np.sum(atom_radii, axis=1)
     return sum_radii
 
@@ -132,6 +132,8 @@ def train_test_split(ccs_df):
     # Get the train and test indices and point to new variables
     ccs_df_train = ccs_df.loc[train_idx, :]
     ccs_df_test = ccs_df.loc[test_idx, :]
+    ccs_df_train.to_csv("ccs_df_train.csv")
+    ccs_df_test.to_csv("ccs_df_test.csv")
     return ccs_df_train, ccs_df_test
 
 def get_features(ccs_df, dataset, architecture, num_lstm, info, log_level="info"):
