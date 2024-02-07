@@ -109,7 +109,7 @@ def get_global_feats(global_arr, df):
             charge.reshape(-1, 1),
             normalized_sum_radii.reshape(-1, 1),
             vols,
-            aa_ends,
+            # aa_ends,
         ),
         axis=1,
     )
@@ -143,11 +143,11 @@ def get_features(ccs_df, dataset, architecture, num_lstm, info, log_level="info"
     train_df["seq"] = ccs_df_train["seq"]
     test_df["seq"] = ccs_df_test["seq"]
 
-    train_df.to_csv(
-        "./data/train_{}_{}_{}_{}.csv".format(
-            dataset, architecture, num_lstm, info
-        )
-    )
+    # train_df.to_csv(
+    #     "./data/train_{}_{}_{}_{}.csv".format(
+    #         dataset, architecture, num_lstm, info
+    #     )
+    # )
 
     (
         X_train,

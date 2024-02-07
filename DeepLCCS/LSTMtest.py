@@ -1,7 +1,6 @@
 import tensorflow as tf
 from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
 
-
 def regularizer_setup(regularizer, l1_strength, l2_strength):
     if regularizer is None:
         return None
@@ -45,7 +44,7 @@ class GlobalFeaturesDense(tf.keras.Model):
         self.l1_strength = l1_strength
         self.l2_strength = l2_strength
 
-        self.input_layer = tf.keras.Input(shape=(19,))
+        self.input_layer = tf.keras.Input(shape=(9,))
         self.dense_layer = tf.keras.layers.Dense(
             num_C_dense,
             activation=activation,
@@ -87,7 +86,7 @@ class FinalModel(tf.keras.Model):
             loss=self.loss,
             metrics=self._metrics
         )
-    
+
     def call(self, inputs):
         return self.model(inputs)
 

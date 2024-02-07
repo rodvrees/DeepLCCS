@@ -10,3 +10,8 @@ sum_radii_train.csv
 *.pickle
 figs/
 .DeepLCCS/
+.venv/
+preds/
+figs/
+gputest.ipynb
+__pycache__/
