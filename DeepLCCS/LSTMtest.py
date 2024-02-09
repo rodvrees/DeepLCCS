@@ -1,5 +1,10 @@
 import tensorflow as tf
-from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint
+from tensorflow.keras.callbacks import ModelCheckpoint
+from wandb.keras import WandbMetricsLogger, WandbModelCheckpoint, WandbCallback
+from DeepLCCS.callbacks import BestLossTracker
+import datetime
+
+best_loss_tracker = BestLossTracker()
 
 def regularizer_setup(regularizer, l1_strength, l2_strength):
     if regularizer is None:
@@ -44,7 +49,7 @@ class GlobalFeaturesDense(tf.keras.Model):
         self.l1_strength = l1_strength
         self.l2_strength = l2_strength
 
-        self.input_layer = tf.keras.Input(shape=(9,))
+        self.input_layer = tf.keras.Input(shape=(19,))
         self.dense_layer = tf.keras.layers.Dense(
             num_C_dense,
             activation=activation,
@@ -98,12 +103,18 @@ def compile_model(config, X_train):
     final_model.compile(optimizer=tf.keras.optimizers.Adam(config.learning_rate), loss=config.loss, metrics=config.metrics)
     return final_model
 
-def fit_model(model, X_train, global_feats_train, ccs_df_train, config):
+def fit_model(model, X_train, global_feats_train, ccs_df_train, config, time):
+    #TODO: hardcoded path for now should be in config and also shouldn't rely on config.info
+    # mcp_save = ModelCheckpoint(filepath = '/home/robbe/DeepLCCS/models/{}.weights.keras'.format(config.info, time), save_best_only=True, save_weights_only=True, monitor='val_mean_absolute_error', mode='min', save_format='tf')
     history = model.fit(
             (X_train, global_feats_train),
             ccs_df_train.loc[:, "tr"],
             epochs=config.epochs,
             batch_size=config.batch_size,
             validation_split=config.v_split,
-            callbacks=[WandbMetricsLogger(log_freq=5)])
+            callbacks=[WandbMetricsLogger(), best_loss_tracker],
+            # shuffle=True
+            )
+    #Save best model
+    # best_model.save('/home/robbe/DeepLCCS/models/{}.h5'.format(config.info), save_format='h5')
     return history

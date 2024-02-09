@@ -94,7 +94,7 @@ def run(args, time
     logger.info('Training model...')
     model = compile_model(args, X_train)
     history = fit_model(
-        model, X_train, global_feats_train, ccs_df_train, args
+        model, X_train, global_feats_train, ccs_df_train, args, time
     )
 
     stop_wandb()

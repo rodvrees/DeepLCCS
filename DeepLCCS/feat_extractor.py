@@ -39,12 +39,12 @@ aa_vol = pd.read_csv(filepath + "/aa_vol.csv")
 
 def get_atom_radii(atom_counts):
     atom_radii = np.zeros((atom_counts.shape[0], 6))
-    atom_radii[:, 0] = atom_counts[:, 0] * 170 #C
-    atom_radii[:, 1] = atom_counts[:, 1] * 120 #H
-    atom_radii[:, 2] = atom_counts[:, 2] * 155 #N
-    atom_radii[:, 3] = atom_counts[:, 3] * 152 #O
-    atom_radii[:, 4] = atom_counts[:, 4] * 180 #S
-    atom_radii[:, 5] = atom_counts[:, 5] * 180 #P
+    atom_radii[:, 0] = atom_counts[:, 0] * 1.70 #C
+    atom_radii[:, 1] = atom_counts[:, 1] * 1.20 #H
+    atom_radii[:, 2] = atom_counts[:, 2] * 1.55 #N
+    atom_radii[:, 3] = atom_counts[:, 3] * 1.52 #O
+    atom_radii[:, 4] = atom_counts[:, 4] * 1.80 #S
+    atom_radii[:, 5] = atom_counts[:, 5] * 1.80 #P
     sum_radii = np.sum(atom_radii, axis=1)
     return sum_radii
 
@@ -108,9 +108,14 @@ def get_global_feats(global_arr, df):
             atom_counts,
             charge.reshape(-1, 1),
             normalized_sum_radii.reshape(-1, 1),
-            vols,
+            #Add 0 for every data point
+            # np.zeros((len(normalized_sum_radii), 1)),
+            # vols,
+            np.zeros((len(vols), 1)),
             # aa_ends,
-        ),
+            np.zeros((len(aa_ends), 10))
+            )
+        ,
         axis=1,
     )
     return global_feats
