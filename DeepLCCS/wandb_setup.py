@@ -3,7 +3,7 @@ import datetime
 
 def start_wandb(args, time):
     wandb.init(
-            project="DeepLCCS-new-architectures",
+            project="DeepLCCS-features",
             name="{}_{}_{}_{}_{}".format(
                 args.dataset, args.architecture, args.num_lstm, args.info, time
             ),

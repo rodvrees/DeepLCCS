@@ -108,9 +108,14 @@ def get_global_feats(global_arr, df):
             atom_counts,
             charge.reshape(-1, 1),
             normalized_sum_radii.reshape(-1, 1),
-            vols,
+            #Add 0 for every data point
+            # np.zeros((len(normalized_sum_radii), 1)),
+            # vols,
+            np.zeros((len(vols), 1)),
             # aa_ends,
-        ),
+            np.zeros((len(aa_ends), 10))
+            )
+        ,
         axis=1,
     )
     return global_feats

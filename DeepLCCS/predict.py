@@ -79,7 +79,7 @@ def plot_predictions(ccs_df, test_df, args, time):
                 args.dataset, args.architecture, args.num_lstm, args.info, time
             ),
             dpi=300,
-        )    
+        )
     except FileNotFoundError:
         plt.savefig(
             args.figure_dir + "{}_{}_{}_{}_{}.png".format(
@@ -87,7 +87,7 @@ def plot_predictions(ccs_df, test_df, args, time):
             ),
             dpi=300,
         )
-        
+
 
 def predict_and_plot(ccs_df, X_test, global_feats_test, test_df, model, args, time):
     test_df["Predictions"] = model.predict((X_test, global_feats_test))

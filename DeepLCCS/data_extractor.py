@@ -23,14 +23,14 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
 
     try:
         if dataset == "full":
-            X_train = pickle.load(open("/home/robbe/DeepLCCS/data/X_train_full-noaa.pickle", "rb"))
+            X_train = pickle.load(open("/home/robbe/DeepLCCS/data/X_train_full-noaa-novols.pickle", "rb"))
             global_feats_train = pickle.load(
-                open("/home/robbe/DeepLCCS/data/global_feats_train_full-noaa.pickle", "rb")
+                open("/home/robbe/DeepLCCS/data/global_feats_train_full-noaa-novols.pickle", "rb")
             )
-            X_test = pickle.load(open("/home/robbe/DeepLCCS/data/X_test_full-noaa.pickle", "rb"))
-            global_feats_test = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_test_full-noaa.pickle", "rb"))
-            ccs_df_train = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_train_full-noaa.pickle", "rb"))
-            ccs_df_test = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_test_full-noaa.pickle", "rb"))
+            X_test = pickle.load(open("/home/robbe/DeepLCCS/data/X_test_full-noaa-novols.pickle", "rb"))
+            global_feats_test = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_test_full-noaa-novols.pickle", "rb"))
+            ccs_df_train = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_train_full-noaa-novols.pickle", "rb"))
+            ccs_df_test = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_test_full-noaa-novols.pickle", "rb"))
 
         elif dataset == "sample":
             X_train = pickle.load(open("/home/robbe/DeepLCCS/data/X_train_sample.pickle", "rb"))
@@ -57,14 +57,14 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
         ) = get_features(ccs_df, dataset, architecture, num_lstm, info)
 
         if dataset == "full":
-            pickle.dump(X_train, open("/home/robbe/DeepLCCS/data/X_train_full-noaa.pickle", "wb"))
+            pickle.dump(X_train, open("/home/robbe/DeepLCCS/data/X_train_full-noaa-novols.pickle", "wb"))
             pickle.dump(
-                global_feats_train, open("/home/robbe/DeepLCCS/data/global_feats_train_full-noaa.pickle", "wb")
+                global_feats_train, open("/home/robbe/DeepLCCS/data/global_feats_train_full-noaa-novols.pickle", "wb")
             )
-            pickle.dump(X_test, open("/home/robbe/DeepLCCS/data/X_test_full-noaa.pickle", "wb"))
-            pickle.dump(global_feats_test, open("/home/robbe/DeepLCCS/data/global_feats_test_full-noaa.pickle", "wb"))
-            pickle.dump(ccs_df_train, open("/home/robbe/DeepLCCS/data/ccs_df_train_full-noaa.pickle", "wb"))
-            pickle.dump(ccs_df_test, open("/home/robbe/DeepLCCS/data/ccs_df_test_full-noaa.pickle", "wb"))
+            pickle.dump(X_test, open("/home/robbe/DeepLCCS/data/X_test_full-noaa-novols.pickle", "wb"))
+            pickle.dump(global_feats_test, open("/home/robbe/DeepLCCS/data/global_feats_test_full-noaa-novols.pickle", "wb"))
+            pickle.dump(ccs_df_train, open("/home/robbe/DeepLCCS/data/ccs_df_train_full-noaa-novols.pickle", "wb"))
+            pickle.dump(ccs_df_test, open("/home/robbe/DeepLCCS/data/ccs_df_test_full-noaa-novols.pickle", "wb"))
 
         elif dataset == "sample":
             pickle.dump(X_train, open("/home/robbe/DeepLCCS/data/X_train_sample.pickle", "wb"))
