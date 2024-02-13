@@ -15,17 +15,18 @@ import matplotlib.pyplot as plt
 # Config paramaters
 config = {
     ## GENERAL
-    "name": "DeepLCCS",
+    "name": "Check_interesting_sweep_run",
     "time": datetime.now().strftime("%d-%m-%Y_%H-%M-%S"),
     "save_model": False,
 
     ## GENERAL MODEL PARAMETERS
-    "epochs": 5,
+    "epochs": 100,
     "batch_size": 128,
-    "learning_rate": 0.0001,
+    "learning_rate": 0.00001,
     "optimizer": "adam",
     "adam_weight_decay": 0,
-    "adam_betas": (0.9, 0.999),
+    "adam_beta1": 0.9,
+    "adam_beta2": 0.999,
     "loss_function": "mse",
     "v_split": 0.1,
 
@@ -35,39 +36,31 @@ config = {
     "N_LSTM_units1": 512,
     "N_LSTM_units2": 256,
     "N_LSTM_units3": 128,
-    "LSTM_dropout": False,
+    "LSTM_dropout": True,
     # "LSTM_dropout_strength": [0, 0],
-    "LSTM_dropout_strength1": 0.3,
-    "LSTM_dropout_strength2": 0,
-    "LSTM_dropout_strength3": 0,
+    "LSTM_dropout_strength1": 0.2,
+    "LSTM_dropout_strength2": 0.1,
+    "LSTM_dropout_strength3": 0.1,
     "LSTM_L1": False,
     "LSTM_L1_strength": [0, 0],
     "LSTM_L2": False,
     "LSTM_L2_strength": [0, 0],
-    "LSTM_L1L2": False,
+    "LSTM_L1L2": True,
 
     ## GLOBAL CHANNEL
     "N_global_layers": 4,
     # "N_global_units": [64, 64, 64, 64, 64, 64, 64, 64],
-    "N_global_units1": 64,
-    "N_global_units2": 2,
-    "N_global_units3": 8,
-    "N_global_units4": 64,
-    "N_global_units5": 16,
-    "N_global_units6": 4,
-    "N_global_units7": 32,
-    "N_global_units8": 64,
+    "N_global_units1": 256,
+    "N_global_units2": 64,
+    "N_global_units3": 128,
+    "N_global_units4": 256,
+    "N_global_units5": 1024,
+    "N_global_units6": 16,
+    "N_global_units7": 512,
+    "N_global_units8": 128,
     "global_activation": "relu",  # Might want to change this to a list as well to make variable for each layer
-    "global_dropout": False,
-    # "global_dropout_strength": [0, 0, 0, 0, 0, 0],
-    "global_dropout_strength1": 0,
-    "global_dropout_strength2": 0,
-    "global_dropout_strength3": 0,
-    "global_dropout_strength4": 0,
-    "global_dropout_strength5": 0.3,
-    "global_dropout_strength6": 0,
-    "global_dropout_strength7": 0,
-    "global_dropout_strength8": 0,
+    "global_dropout": True,
+    "global_dropout_strength": 0.2,
     "global_L1": False,
     "global_L1_strength": [0, 0, 0, 0, 0, 0],
     "global_L2": False,
@@ -77,25 +70,18 @@ config = {
     ## CONCATENATED CHANNEL
     "N_concat_layers": 2,
     # "N_concat_units": [512, 256, 128],
-    "N_concat_units1": 512,
-    "N_concat_units2": 256,
-    "N_concat_units3": 128,
-    "N_concat_units4": 64,
-    "N_concat_units5": 64,
-    "N_concat_units6": 64,
-    "N_concat_units7": 64,
-    "N_concat_units8": 64,
+    "N_concat_units1": 128,
+    "N_concat_units2": 128,
+    "N_concat_units3": 256,
+    "N_concat_units4": 256,
+    "N_concat_units5": 32,
+    "N_concat_units6": 128,
+    "N_concat_units7": 16,
+    "N_concat_units8": 128,
     "concat_activation": "relu",
-    "concat_dropout": False,
+    "concat_dropout": True,
     # "concat_dropout_strength": [0, 0, 0],
-    "concat_dropout_strength1": 0.3,
-    "concat_dropout_strength2": 0,
-    "concat_dropout_strength3": 0,
-    "concat_dropout_strength4": 0,
-    "concat_dropout_strength5": 0,
-    "concat_dropout_strength6": 0,
-    "concat_dropout_strength7": 0,
-    "concat_dropout_strength8": 0,
+    "concat_dropout_strength": 0.2,
     "concat_L1": False,
     "concat_L1_strength": [0, 0, 0],
     "concat_L2": False,
@@ -314,12 +300,16 @@ class IM2DeepModel(nn.Module):
         # Bidirectional LSTM layer
         self.lstms = nn.ModuleList()
         self.lstms.append(
-            nn.LSTM(6, self.config['N_LSTM_units1'], batch_first=True, bidirectional=True, dropout=self.config['LSTM_dropout_strength1'] if self.config['LSTM_dropout'] else 0)
+            nn.LSTM(6, self.config['N_LSTM_units1'], batch_first=True, bidirectional=True)
         )
         for i in range(1, self.config['N_LSTM_layers']):
             self.lstms.append(
-                nn.LSTM(self.config['N_LSTM_units{}'.format(i)] * 2, self.config['N_LSTM_units{}'.format(i+1)], batch_first=True, bidirectional=True, dropout=self.config['LSTM_dropout_strength{}'.format(i+1)] if self.config['LSTM_dropout'] else 0)
+                nn.LSTM(self.config['N_LSTM_units{}'.format(i)] * 2, self.config['N_LSTM_units{}'.format(i+1)], batch_first=True, bidirectional=True)
             )
+
+        self.lstm_dropout = nn.ModuleList()
+        for i in range(self.config['N_LSTM_layers']):
+            self.lstm_dropout.append(nn.Dropout(self.config['LSTM_dropout_strength{}'.format(i+1)] if self.config['LSTM_dropout'] else 0))
 
         # Dense network for input 2
         global_dense_layers = []
@@ -341,6 +331,7 @@ class IM2DeepModel(nn.Module):
             )
 
         self.global_dense = nn.Sequential(*global_dense_layers)
+        self.global_dense_dropout = nn.Dropout(self.config["global_dropout_strength"] if self.config["global_dropout"] else 0)
 
         # Concatenated size for the fully connected layer
         concat_size = (
@@ -375,6 +366,8 @@ class IM2DeepModel(nn.Module):
 
         self.fc = nn.Sequential(*concat_dense_layers)
 
+        self.fc_dropout = nn.Dropout(self.config["concat_dropout_strength"] if self.config["concat_dropout"] else 0)
+
     def _get_activation(self, activation_name):
         if activation_name == "relu":
             return nn.ReLU()
@@ -382,8 +375,10 @@ class IM2DeepModel(nn.Module):
     def forward(self, input1, input2):
         # Input 1 through Bidirectional LSTM
         lstm_output = input1
-        for lstm in self.lstms:
+        for i, lstm in enumerate(self.lstms):
             lstm_output, _ = lstm(lstm_output)
+            if self.config["LSTM_dropout"]:
+                lstm_output = self.lstm_dropout[i](lstm_output)
 
         # Get the last output of the LSTM
         lstm_output = lstm_output[:, -1, :]
@@ -396,6 +391,7 @@ class IM2DeepModel(nn.Module):
 
         # Fully connected layer
         output = self.fc(concatenated)
+        output = self.fc_dropout(output)
 
         return output
 
@@ -439,7 +435,7 @@ def main(config):
         config["optimizer"],
         model=model,
         learning_rate=config["learning_rate"],
-        betas=config["adam_betas"],
+        betas=(config["adam_beta1"], config["adam_beta2"]),
         weight_decay=config["adam_weight_decay"],
     )
 
