@@ -33,7 +33,7 @@ def parse_args():
     model_args.add_argument(
         "--num_concat_dense",
         type=list,
-        default=[64, 32],
+        default=[512, 256, 128, 64],
         help="Number of dense units after concatenation",
     )
     model_args.add_argument(

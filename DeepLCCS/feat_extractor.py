@@ -55,7 +55,7 @@ def get_AA_vols(seq):
     for aa in seq:
         vol += aa_vol.loc[aa_vol["aa"] == aa, "vol"].values[0]
     vol_normalized = vol / (length * aa_vol.loc[aa_vol["aa"] == "G", "vol"].values[0])
-    return vol_normalized
+    return length
 
 
 def get_atom_comp_ends(seq):
@@ -90,30 +90,33 @@ def get_global_feats(global_arr, df):
     global_feats = np.concatenate(
         (global_arr, df["charge"].values.reshape(-1, 1)), axis=1
     )
-    # Add atom counts to features
+    # # Add atom counts to features
     atom_counts = global_feats[:, 0:6]
     charge = global_feats[:, -1]
-    # Add sum of radii to features
-    sum_radii = get_atom_radii(atom_counts)
-    normalized_sum_radii = sum_radii / np.max(sum_radii)
-    # Add volume to features
-    df["vol"] = df["seq"].apply(get_AA_vols)
-    vols = df["vol"].values.reshape(-1, 1)
-    # Add AA ends composition to features
-    aa_ends = df["seq"].apply(get_atom_comp_ends)
-    aa_ends = np.stack(aa_ends.values)
-    # Create global features
+    df['length'] = df['seq'].apply(get_AA_vols)
+    lengths = df['length'].values.reshape(-1, 1)
+
+    # # Add sum of radii to features
+    # sum_radii = get_atom_radii(atom_counts)
+    # normalized_sum_radii = sum_radii / np.max(sum_radii)
+    # # Add volume to features
+    # df["vol"] = df["seq"].apply(get_AA_vols)
+    # vols = df["vol"].values.reshape(-1, 1)
+    # # Add AA ends composition to features
+    # aa_ends = df["seq"].apply(get_atom_comp_ends)
+    # aa_ends = np.stack(aa_ends.values)
+    # # Create global features
     global_feats = np.concatenate(
         (
             atom_counts,
             charge.reshape(-1, 1),
-            normalized_sum_radii.reshape(-1, 1),
-            #Add 0 for every data point
+            lengths
+            # normalized_sum_radii.reshape(-1, 1),
             # np.zeros((len(normalized_sum_radii), 1)),
             # vols,
-            np.zeros((len(vols), 1)),
+            # np.zeros((len(vols), 1)),
             # aa_ends,
-            np.zeros((len(aa_ends), 10))
+            # np.zeros((len(aa_ends), 10))
             )
         ,
         axis=1,
