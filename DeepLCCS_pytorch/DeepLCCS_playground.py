@@ -15,28 +15,29 @@ import torch.nn.functional as F
 # Config paramaters
 config = {
     ## GENERAL
-    "name": "Sweeprun",
+    "name": "FullTrainsetBestSampleParams",
     "time": datetime.now().strftime("%d-%m-%Y_%H-%M-%S"),
     "save_model": False,
 
     ## GENERAL MODEL PARAMETERS
-    "epochs": 100,
-    "batch_size": 128,
-    "learning_rate": 0.006,
+    "epochs": 200,
+    "batch_size": 64,
+    "learning_rate": 0.001,
     "optimizer": "adam",
     "adam_weight_decay": 0,
     "adam_beta1": 0.9,
     "adam_beta2": 0.999,
     "loss_function": "mse",
     "v_split": 0.1,
-    "cyclic": 'true',
-    "reduce_on_plateau": 'false',
+    "cyclic": 'false',
+    "reduce_on_plateau": 'true',
+    'lrelu_slope': 0.01,
 
     ## LSTM CHANNEL
     "N_LSTM_layers": 2,
     # "N_LSTM_units": [512, 256, 128],
     "N_LSTM_units1": 512,
-    "N_LSTM_units2": 256,
+    "N_LSTM_units2": 521,
     "N_LSTM_units3": 512,
     "LSTM_dropout": False,
     # "LSTM_dropout_strength": [0, 0],
@@ -51,25 +52,26 @@ config = {
 
     ## CONVOLUTIONAL CHANNEL
     "conv": True,
-    "N_conv_layers": 4,
-    "N_conv_units1": 128,
-    "N_conv_units2": 128,
-    "N_conv_units3": 64,
-    "N_conv_units4": 512,
-    "N_conv_units5": 256,
+    "N_conv_layers": 3,
+    "N_conv_units1": 32,
+    "N_conv_units2": 64,
+    "N_conv_units3": 32,
+    "N_conv_units4": 32,
+    "N_conv_units5": 128,
     "N_conv_units6": 256,
     "Conv_stride": 1,
-    "Conv_kernel_size": 6,
+    "Conv_kernel_size": 3,
     "Conv_padding": 0,
+    "conv_activation": "relu",
 
     ## GLOBAL CHANNEL
-    "N_global_layers": 4,
+    "N_global_layers": 3,
     # "N_global_units": [64, 64, 64, 64, 64, 64, 64, 64],
-    "N_global_units1": 256,
-    "N_global_units2": 128,
-    "N_global_units3": 128,
+    "N_global_units1": 1024,
+    "N_global_units2": 1024,
+    "N_global_units3": 256,
     "N_global_units4": 128,
-    "N_global_units5": 1024,
+    "N_global_units5": 64,
     "N_global_units6": 16,
     "N_global_units7": 512,
     "N_global_units8": 128,
@@ -83,13 +85,13 @@ config = {
     "global_L1L2": False,
 
     ## CONCATENATED CHANNEL
-    "N_concat_layers": 2,
+    "N_concat_layers": 5,
     # "N_concat_units": [512, 256, 128],
-    "N_concat_units1": 256,
+    "N_concat_units1": 32,
     "N_concat_units2": 128,
-    "N_concat_units3": 512,
-    "N_concat_units4": 512,
-    "N_concat_units5": 512,
+    "N_concat_units3": 128,
+    "N_concat_units4": 1024,
+    "N_concat_units5": 521,
     "N_concat_units6": 64,
     "N_concat_units7": 32,
     "N_concat_units8": 32,
@@ -103,10 +105,10 @@ config = {
     "concat_L2_strength": [0, 0, 0],
 
     ## OTHER
-    "reduce_on_plateau_factor": 0.8,
-    "reduce_on_plateau_patience": 5,
-    "reduce_on_plateau_threshold": 0.1,
-    'reduce_on_plateau_cooldown': 3,
+    "reduce_on_plateau_factor": 0.6,
+    "reduce_on_plateau_patience": 7,
+    "reduce_on_plateau_threshold": 0.5,
+    'reduce_on_plateau_cooldown': 1,
     }
 
 # Set-up WandB
@@ -349,8 +351,10 @@ class IM2DeepModel(nn.Module):
             #1D convolutional layer
             self.convs = nn.ModuleList()
             self.convs.append(nn.Conv1d(6, self.config['N_conv_units1'], self.config['Conv_kernel_size'], stride=self.config['Conv_stride']))
+            self.convs.append(self._get_activation(config["conv_activation"]))
             for i in range(1, self.config['N_conv_layers']):
                 self.convs.append(nn.Conv1d(self.config['N_conv_units{}'.format(i)], self.config['N_conv_units{}'.format(i+1)], self.config['Conv_kernel_size'], stride=self.config['Conv_stride']))
+                self.convs.append(self._get_activation(config["conv_activation"]))
             #Flatten
             # self.convs.append(nn.Flatten())
 
@@ -425,6 +429,10 @@ class IM2DeepModel(nn.Module):
     def _get_activation(self, activation_name):
         if activation_name == "relu":
             return nn.ReLU()
+        elif activation_name == "lrelu":
+            return nn.LeakyReLU(config['lrelu_slope'])
+        elif activation_name == "tanh":
+            return nn.Tanh()
 
     def _calculate_conv_output_size(self, input_size, kernel_size, stride, padding):
         return (input_size - kernel_size + 2 * padding) // stride + 1
@@ -506,10 +514,11 @@ def main(config):
 
     if config['cyclic'] == 'true':
         base_lr = 0.00001
-        max_lr = 0.006
+        max_lr = 0.01
         step_size_up = len(ccs_df) / config['batch_size'] * 7
+        # step_size_up = 1000
         wandb.log({"Base learning rate": base_lr, "Max learning rate": max_lr, "Step size up": step_size_up})
-        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=base_lr, max_lr=max_lr, step_size_up=step_size_up, cycle_momentum=False)
+        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=base_lr, max_lr=max_lr, step_size_up=step_size_up, cycle_momentum=False, mode='triangular2')
 
     if config['reduce_on_plateau'] == 'true':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=config['reduce_on_plateau_factor'], patience=config['reduce_on_plateau_patience'], threshold=config['reduce_on_plateau_threshold'], threshold_mode='abs', cooldown=config['reduce_on_plateau_cooldown'], min_lr=0, eps=1e-08)

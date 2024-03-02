@@ -11,13 +11,14 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from scipy import stats
 import matplotlib.pyplot as plt
+import copy
 
 config = {
-    "name": "DeepLC_baseline_kernel2",
+    "name": "Sweep",
     "time": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
     "batch_size": 128,
-    "learning_rate": 0.001,
-    "AtomComp_kernel_size": 2,
+    "learning_rate": 0.0001,
+    "AtomComp_kernel_size": 8,
     "DiatomComp_kernel_size": 2,
     "One_hot_kernel_size": 2,
     "AtomComp_out_channels_start": 256,
@@ -28,17 +29,22 @@ config = {
     "AtomComp_MaxPool_kernel_size": 2,
     "DiatomComp_MaxPool_kernel_size": 2,
     "OneHot_MaxPool_kernel_size": 10,
-    "LRelu_negative_slope": 0.1,
+    "LRelu_negative_slope": 0.01,
     "LRelu_saturation": 20,
-    "L1_alpha": 2.5e-7,
+    "L1_alpha": 5e-6,
+    'epochs': 100,
+    'delta': 0,
+    'device': '1'
 }
 
 wandb_run = wandb.init(
-    name=config["name"],
+    name=config["name"] + "-" + config["time"],
     project="DeepLC_hyperparams",
     save_code=False,
     config=config,
 )
+
+config = wandb.config
 
 class LRelu_with_saturation(nn.Module):
     def __init__(self, negative_slope, saturation):
@@ -52,89 +58,108 @@ class LRelu_with_saturation(nn.Module):
         return torch.clamp(activated, max=self.saturation)
 
 class DeepLC_mimic(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super(DeepLC_mimic, self).__init__()
         # self.config = config
-
+        self.config = config
         self.ConvAtomComp = nn.ModuleList()
         # AtomComp input size is batch_size x 60 x 6 but should be batch_size x 6 x 60
-        self.ConvAtomComp.append(nn.Conv1d(6, 256, 2, padding='same'))
+        self.ConvAtomComp.append(nn.Conv1d(6, config['AtomComp_out_channels_start'], config['AtomComp_kernel_size'], padding='same'))
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
-        self.ConvAtomComp.append(nn.Conv1d(256, 256, 2, padding='same'))
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvAtomComp.append(nn.Conv1d(config['AtomComp_out_channels_start'], config['AtomComp_out_channels_start'], config['AtomComp_kernel_size'], padding='same'))
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
-        self.ConvAtomComp.append(nn.MaxPool1d(2, 2))
-        self.ConvAtomComp.append(nn.Conv1d(256, 128, 2, padding='same')) #Input is probably 128 now?
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvAtomComp.append(nn.MaxPool1d(config['AtomComp_MaxPool_kernel_size'], config['AtomComp_MaxPool_kernel_size']))
+        self.ConvAtomComp.append(nn.Conv1d(config['AtomComp_out_channels_start'], config['AtomComp_out_channels_start']//2, config['AtomComp_kernel_size'], padding='same')) #Input is probably 256 now?
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
-        self.ConvAtomComp.append(nn.Conv1d(128, 128, 2, padding='same'))
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvAtomComp.append(nn.Conv1d(config['AtomComp_out_channels_start']//2, config['AtomComp_out_channels_start']//2, config['AtomComp_kernel_size'], padding='same'))
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
-        self.ConvAtomComp.append(nn.MaxPool1d(2, 2))
-        self.ConvAtomComp.append(nn.Conv1d(128, 64, 2, padding='same')) #Input is probably 64 now?
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvAtomComp.append(nn.MaxPool1d(config['AtomComp_MaxPool_kernel_size'], config['AtomComp_MaxPool_kernel_size']))
+        self.ConvAtomComp.append(nn.Conv1d(config['AtomComp_out_channels_start']//2, config['AtomComp_out_channels_start']//4, config['AtomComp_kernel_size'], padding='same')) #Input is probably 128 now?
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
-        self.ConvAtomComp.append(nn.Conv1d(64, 64, 2, padding='same'))
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvAtomComp.append(nn.Conv1d(config['AtomComp_out_channels_start']//4, config['AtomComp_out_channels_start']//4, config['AtomComp_kernel_size'], padding='same'))
         # self.ConvAtomComp.append(nn.LeakyReLU())
-        self.ConvAtomComp.append(LRelu_with_saturation(0.1, 20))
+        self.ConvAtomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
 
         # Flatten
         self.ConvAtomComp.append(nn.Flatten())
 
+        ConvAtomCompSize = (60 // (2 * config['AtomComp_MaxPool_kernel_size'])) * (config['AtomComp_out_channels_start']//4)
+        print(ConvAtomCompSize)
+
         self.ConvDiatomComp = nn.ModuleList()
         # DiatomComp input size is batch_size x 30 x 6 but should be batch_size x 6 x 30
-        self.ConvDiatomComp.append(nn.Conv1d(6, 128, 2, padding='same'))
-        self.ConvDiatomComp.append(nn.LeakyReLU())
-        self.ConvDiatomComp.append(nn.Conv1d(128, 128, 2, padding='same'))
-        self.ConvDiatomComp.append(nn.LeakyReLU())
-        self.ConvDiatomComp.append(nn.MaxPool1d(2, 2))
-        self.ConvDiatomComp.append(nn.Conv1d(128, 64, 2, padding='same')) #Input is probably 64 now?
-        self.ConvDiatomComp.append(nn.LeakyReLU())
-        self.ConvDiatomComp.append(nn.Conv1d(64, 64, 2, padding='same'))
-        self.ConvDiatomComp.append(nn.LeakyReLU())
+        self.ConvDiatomComp.append(nn.Conv1d(6, config['DiatomComp_out_channels_start'], config['DiatomComp_kernel_size'], padding='same'))
+        self.ConvDiatomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvDiatomComp.append(nn.Conv1d(config['DiatomComp_out_channels_start'], config['DiatomComp_out_channels_start'], config['DiatomComp_kernel_size'], padding='same'))
+        self.ConvDiatomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvDiatomComp.append(nn.MaxPool1d(config['DiatomComp_MaxPool_kernel_size'], config['DiatomComp_MaxPool_kernel_size']))
+        self.ConvDiatomComp.append(nn.Conv1d(config['DiatomComp_out_channels_start'], config['DiatomComp_out_channels_start']//2, config['DiatomComp_kernel_size'], padding='same')) #Input is probably 64 now?
+        self.ConvDiatomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvDiatomComp.append(nn.Conv1d(config['DiatomComp_out_channels_start']//2, config['DiatomComp_out_channels_start']//2, config['DiatomComp_kernel_size'], padding='same'))
+        self.ConvDiatomComp.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
         # Flatten
         self.ConvDiatomComp.append(nn.Flatten())
 
+        # Calculate the output size of the DiatomComp layers
+        ConvDiAtomCompSize = (30 // config['DiatomComp_MaxPool_kernel_size']) * (config['DiatomComp_out_channels_start']//2)
+        print(ConvDiAtomCompSize)
+
         self.ConvGlobal = nn.ModuleList()
         # Global input size is batch_size x 60
-        self.ConvGlobal.append(nn.Linear(60, 16))
+        self.ConvGlobal.append(nn.Linear(60, config['Global_units']))
         # self.ConvGlobal.append(nn.LeakyReLU())
-        self.ConvGlobal.append(LRelu_with_saturation(0.1, 20))
-        self.ConvGlobal.append(nn.Linear(16, 16))
+        self.ConvGlobal.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvGlobal.append(nn.Linear(config['Global_units'], config['Global_units']))
         # self.ConvGlobal.append(nn.LeakyReLU())
-        self.ConvGlobal.append(LRelu_with_saturation(0.1, 20))
-        self.ConvGlobal.append(nn.Linear(16, 16))
+        self.ConvGlobal.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.ConvGlobal.append(nn.Linear(config['Global_units'], config['Global_units']))
         # self.ConvGlobal.append(nn.LeakyReLU())
-        self.ConvGlobal.append(LRelu_with_saturation(0.1, 20))
+        self.ConvGlobal.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+
+        # Calculate the output size of the Global layers
+        ConvGlobal_output_size = config['Global_units']
+        print(ConvGlobal_output_size)
 
         # One-hot encoding
         self.OneHot = nn.ModuleList()
-        self.OneHot.append(nn.Conv1d(20, 2, 2, padding='same'))
+        self.OneHot.append(nn.Conv1d(20, config['OneHot_out_channels'], config['One_hot_kernel_size'], padding='same'))
         self.OneHot.append(nn.Tanh())
-        self.OneHot.append(nn.Conv1d(2, 2, 2, padding='same'))
+        self.OneHot.append(nn.Conv1d(config['OneHot_out_channels'], config['OneHot_out_channels'], config['One_hot_kernel_size'], padding='same'))
         self.OneHot.append(nn.Tanh())
-        self.OneHot.append(nn.MaxPool1d(10, 10))
+        self.OneHot.append(nn.MaxPool1d(config['OneHot_MaxPool_kernel_size'], config['OneHot_MaxPool_kernel_size']))
         self.OneHot.append(nn.Flatten())
+
+        # Calculate the output size of the OneHot layers
+        conv_output_size_OneHot = ((60 // config['OneHot_MaxPool_kernel_size']) * config['OneHot_out_channels'])
+        print(conv_output_size_OneHot)
+
+        # Calculate the total input size for the Concat layer
+        total_input_size = ConvAtomCompSize + ConvDiAtomCompSize + ConvGlobal_output_size + conv_output_size_OneHot
+        print(total_input_size)
 
         # Concatenate
         self.Concat = nn.ModuleList()
-        self.Concat.append(nn.Linear(1948, 128))
+        self.Concat.append(nn.Linear(total_input_size, config['Concat_units']))
         # self.Concat.append(nn.LeakyReLU())
-        self.Concat.append(LRelu_with_saturation(0.1, 20))
-        self.Concat.append(nn.Linear(128, 128))
+        self.Concat.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.Concat.append(nn.Linear(config['Concat_units'], config['Concat_units']))
         # self.Concat.append(nn.LeakyReLU())
-        self.Concat.append(LRelu_with_saturation(0.1, 20))
-        self.Concat.append(nn.Linear(128, 128))
+        self.Concat.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.Concat.append(nn.Linear(config['Concat_units'], config['Concat_units']))
         # self.Concat.append(nn.LeakyReLU())
-        self.Concat.append(LRelu_with_saturation(0.1, 20))
-        self.Concat.append(nn.Linear(128, 128))
+        self.Concat.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.Concat.append(nn.Linear(config['Concat_units'], config['Concat_units']))
         # self.Concat.append(nn.LeakyReLU())
-        self.Concat.append(LRelu_with_saturation(0.1, 20))
-        self.Concat.append(nn.Linear(128, 128))
+        self.Concat.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.Concat.append(nn.Linear(config['Concat_units'], config['Concat_units']))
         # self.Concat.append(nn.LeakyReLU())
-        self.Concat.append(LRelu_with_saturation(0.1, 20))
-        self.Concat.append(nn.Linear(128, 1))
+        self.Concat.append(LRelu_with_saturation(config['LRelu_negative_slope'], config['LRelu_saturation']))
+        self.Concat.append(nn.Linear(config['Concat_units'], 1))
 
     def forward(self, atom_comp, diatom_comp, global_feats, one_hot):
         atom_comp = atom_comp.permute(0, 2, 1)
@@ -171,6 +196,7 @@ def train_model(
     best_val_loss = np.Inf
     best_val_mae = np.Inf
 
+    best_model_epochs = []
     for epoch in range(num_epochs):
         start_time = datetime.now()
         model.train()  # Set the model to training mode
@@ -237,8 +263,18 @@ def train_model(
             best_mae = mae
         if val_mae < best_val_mae:
             best_val_mae = val_mae
-            best_model = model
+
         if validation_loss < best_val_loss:
+            if validation_loss < (best_val_loss - (config['delta'] * best_val_loss)):
+                print('Saving best model')
+                # best_model = copy.deepcopy(model)
+                # best_model = model
+                best_model_epochs.append(epoch + 1)
+                torch.save({'epoch': epoch+1,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': criterion,
+                }, 'models/{}_{}_best_model.pth'.format(config['name'], config['time']))
             best_val_loss = validation_loss
 
         finish_time = datetime.now()
@@ -254,14 +290,16 @@ def train_model(
             "Best mean absolute error": best_mae,
             "Best validation loss": best_val_loss,
             "Best validation mean absolute error": best_val_mae,
-            "Training time": train_time.total_seconds()
+            "Training time": train_time.total_seconds(),
+            "Best model epochs": best_model_epochs,
         })
         print(
             f"Epoch [{epoch+1}/{num_epochs}]: Loss: {loss:.4f}, MAE: {mae:.4f}, Validation Loss: {validation_loss:.4f}, Validation MAE: {val_mae:.4f}, Training time: {train_time.total_seconds()} seconds, Learning rate: {optimizer.param_groups[0]['lr']}"
         )
 
     print("Training finished!")
-    return best_model
+    print("Model was saved on these epochs:", best_model_epochs)
+    return model
 
 
 def validate_model(model, criterion, valid_loader):
@@ -283,7 +321,7 @@ def validate_model(model, criterion, valid_loader):
 
     return avg_loss
 
-def evaluate_model(model, test_loader):
+def evaluate_model(model, test_loader, info='', path='/home/robbe/DeepLCCS/preds/'):
     model.eval()  # Set the model to evaluation mode
     test_predictions = []
     test_targets = []
@@ -296,6 +334,10 @@ def evaluate_model(model, test_loader):
             test_targets.extend(y_test_batch.cpu().numpy())
 
     mae = mean_absolute_error(np.array(test_targets), np.array(test_predictions).squeeze())
+    mre = np.median(
+        abs(np.array(test_predictions).flatten() - np.array(test_targets).flatten())
+        / np.array(test_targets).flatten()
+    )
     print(f"Test MAE: {mae:.4f}")
     r, p = stats.pearsonr(
         np.array(test_targets).flatten(), np.array(test_predictions).flatten()
@@ -315,19 +357,19 @@ def evaluate_model(model, test_loader):
         ),
         2,
     )
-
-    wandb.log({"Test MAE": mae, "Test Pearson R": r, "Test 95th percentile": perc_95})
+    if info == 'best':
+        wandb.log({"Test MAE": mae, "Test Pearson R": r, "Test 95th percentile": perc_95, "Test MRE": mre})
     # Save the predictions for each sample #TODO: Give this to the df of the samples
     test_df = pd.DataFrame({"Predictions": test_predictions, "Targets": test_targets})
     test_df.to_csv(
-        "/home/robbe/DeepLCCS/preds/{}_preds.csv".format(
-            config["name"] + "-" + config["time"]
+        path + "{}_preds.csv".format(
+            info + "-" + config["name"] + "-" + config["time"]
         )
     )
     return mae, r, perc_95, test_df
 
 def plot_predictions(
-    test_df, config, mae, r, perc_95
+    test_df, config, mae, r, perc_95, info='', path='/home/robbe/DeepLCCS/figs/'
 ):  # TODO: make charge state a parameter to color
     if len(test_df) < 1e4:
         set_alpha = 0.2
@@ -343,43 +385,44 @@ def plot_predictions(
     plt.ylabel("Predicted CCS (^2)")
     plt.title(f"PCC: {round(r, 4)} - MARE: {round(mae, 4)}% - 95th percentile: {round(perc_95, 4)}%")
     plt.savefig(
-        "/home/robbe/DeepLCCS/figs/{}_preds.png".format(
-            config["name"] + "-" + config["time"]
+        path + "{}_preds.png".format(
+            info + "-" + config["name"] + "-" + config["time"]
         )
     )
 
 def main():
     # Get data
     ccs_df = pd.read_csv("/home/robbe/DeepLCCS/data/trainset.csv")
-    Train_AtomEnc = pickle.load(open("/home/robbe/DeepLCCS/data_clean/X_train_AtomEnc-DeepLC.pickle", "rb"))
+    Train_AtomEnc = pickle.load(open("/home/robbe/DeepLCCS/data_clean/X_train_AtomEnc-SmallerVal.pickle", "rb"))
     Train_Globals = pickle.load(
-        open("/home/robbe/DeepLCCS/data_clean/X_train_GlobalFeatures-DeepLC.pickle", "rb")
+        open("/home/robbe/DeepLCCS/data_clean/X_train_GlobalFeatures-SmallerVal.pickle", "rb")
     )
-    Train_DiAminoAtomEnc = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_train_DiAminoAtomEnc-DeepLC.pickle', 'rb'))
-    Train_OneHot = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_train_OneHot-DeepLC.pickle', 'rb'))
-    y_train = pickle.load(open('/home/robbe/DeepLCCS/data_clean/y_train-DeepLC.pickle', 'rb'))
+    Train_DiAminoAtomEnc = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_train_DiAminoAtomEnc-SmallerVal.pickle', 'rb'))
+    Train_OneHot = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_train_OneHot-SmallerVal.pickle', 'rb'))
+    y_train = pickle.load(open('/home/robbe/DeepLCCS/data_clean/y_train-SmallerVal.pickle', 'rb'))
 
-    Test_AtomEnc = pickle.load(open("/home/robbe/DeepLCCS/data_clean/X_test_AtomEnc-DeepLC.pickle", "rb"))
+    Test_AtomEnc = pickle.load(open("/home/robbe/DeepLCCS/data_clean/X_test_AtomEnc-SmallerVal.pickle", "rb"))
     Test_Globals = pickle.load(
-        open("/home/robbe/DeepLCCS/data_clean/X_test_GlobalFeatures-DeepLC.pickle", "rb")
+        open("/home/robbe/DeepLCCS/data_clean/X_test_GlobalFeatures-SmallerVal.pickle", "rb")
     )
-    Test_DiAminoAtomEnc = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_test_DiAminoAtomEnc-DeepLC.pickle', 'rb'))
-    Test_OneHot = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_test_OneHot-DeepLC.pickle', 'rb'))
-    y_test = pickle.load(open('/home/robbe/DeepLCCS/data_clean/y_test-DeepLC.pickle', 'rb'))
+    Test_DiAminoAtomEnc = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_test_DiAminoAtomEnc-SmallerVal.pickle', 'rb'))
+    Test_OneHot = pickle.load(open('/home/robbe/DeepLCCS/data_clean/X_test_OneHot-SmallerVal.pickle', 'rb'))
+    y_test = pickle.load(open('/home/robbe/DeepLCCS/data_clean/y_test-SmallerVal.pickle', 'rb'))
 
 
     # Set-up GPU device
-    device = "cuda:1" if torch.cuda.is_available() else "cpu"
+    device = "cuda:{}".format(config['device']) if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
     # call model
-    model = DeepLC_mimic()
+    model = DeepLC_mimic(config)
     print(model)
     model.to(device)
 
     wandb.log({"Total parameters": sum(p.numel() for p in model.parameters())})
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    # criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
 
     # Convert the data to PyTorch tensors
     Train_AtomEnc = torch.tensor(Train_AtomEnc, dtype=torch.float32).to(device)
@@ -395,21 +438,29 @@ def main():
 
     # Split the data into training and validation sets
     X_train_AtomEnc, X_val_AtomEnc, X_train_Globals, X_val_Globals, X_train_DiAminoAtomEnc, X_val_DiAminoAtomEnc, X_train_OneHot, X_val_OneHot, y_train, y_val = train_test_split(
-        Train_AtomEnc, Train_Globals, Train_DiAminoAtomEnc, Train_OneHot, y_train, test_size=0.1, random_state=42)
+        Train_AtomEnc, Train_Globals, Train_DiAminoAtomEnc, Train_OneHot, y_train, test_size=0.01, random_state=42)
+
+    print(X_train_AtomEnc.shape)
+    print(X_val_AtomEnc.shape)
     # Create data loaders
     train_dataset = TensorDataset(X_train_AtomEnc, X_train_DiAminoAtomEnc, X_train_Globals, X_train_OneHot, y_train)
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
     valid_dataset = TensorDataset(X_val_AtomEnc, X_val_DiAminoAtomEnc, X_val_Globals, X_val_OneHot, y_val)
-    valid_loader = DataLoader(valid_dataset, batch_size=128, shuffle=False)
+    valid_loader = DataLoader(valid_dataset, batch_size=config['batch_size'], shuffle=False)
     test_dataset = TensorDataset(Test_AtomEnc, Test_DiAminoAtomEnc, Test_Globals, Test_OneHot, y_test)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False)
 
     # Train the model
-    best_model = train_model(model, criterion, optimizer, train_loader, valid_loader, num_epochs=100)
-    mae, r, perc_95, test_df = evaluate_model(best_model, test_loader)
+    model = train_model(model, criterion, optimizer, train_loader, valid_loader, num_epochs=config['epochs'], device=device)
+    # mae, r, perc_95, test_df = evaluate_model(model, test_loader)
+
+    best_model_state_dict = torch.load('models/{}_{}_best_model.pth'.format(config['name'], config['time']))['model_state_dict']
+    best_model = DeepLC_mimic(config).to(device)
+    best_model.load_state_dict(best_model_state_dict)
+    mae_best, r_best, perc_95_best, test_df_best = evaluate_model(best_model, test_loader, info='best')
 
     # Plot predictions
-    plot_predictions(test_df, config, mae, r, perc_95)
+    plot_predictions(test_df_best, config, mae_best, r_best, perc_95_best)
 
 if __name__ == "__main__":
     main()

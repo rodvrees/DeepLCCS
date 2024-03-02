@@ -46,12 +46,12 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
             logger.info("Training and test split already exist, loading them...")
 
         else:
-            X_train = pickle.load(open("/home/robbe/DeepLCCS/data/X_train_trainset_all_features.pickle", "rb"))
-            global_feats_train = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_train_trainset_all_features.pickle", "rb"))
-            X_test = pickle.load(open("/home/robbe/DeepLCCS/data/X_test_trainset_all_features.pickle", "rb"))
-            global_feats_test = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_test_trainset_all_features.pickle", "rb"))
-            ccs_df_train = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_train_trainset_all_features.pickle", "rb"))
-            ccs_df_test = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_test_trainset_all_features.pickle", "rb"))
+            X_train = pickle.load(open("/home/robbe/DeepLCCS/data/X_train_trainset_all_features_onehot.pickle", "rb"))
+            global_feats_train = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_train_trainset_all_features_onehot.pickle", "rb"))
+            X_test = pickle.load(open("/home/robbe/DeepLCCS/data/X_test_trainset_all_features_onehot.pickle", "rb"))
+            global_feats_test = pickle.load(open("/home/robbe/DeepLCCS/data/global_feats_test_trainset_all_features_onehot.pickle", "rb"))
+            ccs_df_train = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_train_trainset_all_features_onehot.pickle", "rb"))
+            ccs_df_test = pickle.load(open("/home/robbe/DeepLCCS/data/ccs_df_test_trainset_all_features_onehot.pickle", "rb"))
             logger.info("Training and test split already exist, loading them...")
 
     except IOError:
@@ -90,12 +90,12 @@ def get_data(dataset, architecture, num_lstm, info, log_level="info"):
 
         else:
             logger.info("Making custom data")
-            pickle.dump(X_train, open("/home/robbe/DeepLCCS/data/X_train_trainset_all_features.pickle", "wb"))
-            pickle.dump(global_feats_train, open("/home/robbe/DeepLCCS/data/global_feats_train_trainset_all_features.pickle", "wb"))
-            pickle.dump(X_test, open("/home/robbe/DeepLCCS/data/X_test_trainset_all_features.pickle", "wb"))
-            pickle.dump(global_feats_test, open("/home/robbe/DeepLCCS/data/global_feats_test_trainset_all_features.pickle", "wb"))
-            pickle.dump(ccs_df_train, open("/home/robbe/DeepLCCS/data/ccs_df_train_trainset_all_features.pickle", "wb"))
-            pickle.dump(ccs_df_test, open("/home/robbe/DeepLCCS/data/ccs_df_test_trainset_all_features.pickle", "wb"))
+            pickle.dump(X_train, open("/home/robbe/DeepLCCS/data/X_train_trainset_all_features_onehot.pickle", "wb"))
+            pickle.dump(global_feats_train, open("/home/robbe/DeepLCCS/data/global_feats_train_trainset_all_features_onehot.pickle", "wb"))
+            pickle.dump(X_test, open("/home/robbe/DeepLCCS/data/X_test_trainset_all_features_onehot.pickle", "wb"))
+            pickle.dump(global_feats_test, open("/home/robbe/DeepLCCS/data/global_feats_test_trainset_all_features_onehot.pickle", "wb"))
+            pickle.dump(ccs_df_train, open("/home/robbe/DeepLCCS/data/ccs_df_train_trainset_all_features_onehot.pickle", "wb"))
+            pickle.dump(ccs_df_test, open("/home/robbe/DeepLCCS/data/ccs_df_test_trainset_all_features_onehot.pickle", "wb"))
             logger.info("Training and test split created and saved.")
 
 

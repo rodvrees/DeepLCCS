@@ -274,12 +274,8 @@ def get_features(ccs_df, dataset, architecture, num_lstm, info, log_level="info"
     X_train = np.transpose(X_train, (0, 2, 1))
     X_test = np.transpose(X_test, (0, 2, 1))
 
+    data = [X_train, X_train_sum, global_feats_train, X_train_hc, y_train, X_test, X_test_sum, global_feats_test, X_test_hc, y_test, ccs_df_train, ccs_df_test]
     return (
-        X_train,
-        global_feats_train,
-        X_test,
-        global_feats_test,
-        ccs_df_train,
-        ccs_df_test,
+        data
     )
 

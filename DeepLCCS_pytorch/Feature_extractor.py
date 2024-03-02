@@ -16,8 +16,8 @@ def train_test_split(ccs_df):
     random.shuffle(all_idx)
 
     # Select 90 % for training and the remaining 10 % for testing
-    train_idx = all_idx[0 : int(len(all_idx) * 0.9)]
-    test_idx = all_idx[int(len(all_idx) * 0.9) :]
+    train_idx = all_idx[0 : int(len(all_idx) * 0.99)]
+    test_idx = all_idx[int(len(all_idx) * 0.99) :]
 
     # Get the train and test indices and point to new variables
     ccs_df_train = ccs_df.loc[train_idx, :]
@@ -26,8 +26,10 @@ def train_test_split(ccs_df):
     ccs_df_test.to_csv("ccs_df_test.csv")
     return ccs_df_train, ccs_df_test
 
-def get_features(ccs_df):
-    ccs_df_train, ccs_df_test = train_test_split(ccs_df)
+def get_features():
+    # ccs_df_train, ccs_df_test = train_test_split(ccs_df)
+    ccs_df_train = pd.read_csv("/home/robbe/DeepLCCS/data_clean/trainset.csv")
+    ccs_df_test = pd.read_csv("/home/robbe/DeepLCCS/data_clean/testset.csv")
     train_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_train, predict_ccs=True)
     test_df = deeplcretrainer.cnn_functions.get_feat_df(ccs_df_test, predict_ccs=True)
     train_df["charge"] = ccs_df_train["charge"]
@@ -44,6 +46,7 @@ def get_features(ccs_df):
         X_train_hc,
         y_train,
     ) = deeplcretrainer.cnn_functions.get_feat_matrix(train_df)
+
     (
         X_test,
         X_test_sum,
@@ -57,9 +60,8 @@ def get_features(ccs_df):
 
     return train_data, test_data
 
-def main(info='DeepLC'):
-    ccs_df = pd.read_csv("/home/robbe/DeepLCCS/data_clean/trainset.csv")
-    train_data, test_data = get_features(ccs_df)
+def main(info='SmallerVal'):
+    train_data, test_data = get_features()
 
     for key in train_data:
         pickle.dump(train_data[key], open(f"../data_clean/{key}-{info}.pickle", "wb"))
